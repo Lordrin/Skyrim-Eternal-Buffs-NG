@@ -8,34 +8,7 @@
 #include <string>
 #include <vector>
 
-// --- Shared Base Structure ---
-struct BaseRule {
-    std::string  sourceFile;
-    RE::TESForm* resolvedForm = nullptr; // Common base pointer!
-    std::string nameFilter;
-    bool isPermanentEnabled = true;
-    std::string keywordFilter;
-};
-
-// --- EffectRule Structure ---
-struct EffectRule : BaseRule {
-    std::string durationFilter;
-    std::string minDurationFilter;
-    std::string magnitudeFilter;
-};
-
-// Specific structure for Spell rules
-struct SpellRule : BaseRule {
-    std::string durationFilter;
-    std::string minDurationFilter;
-    std::string magnitudeFilter;
-};
-
-namespace DataStore {
-    extern std::vector<EffectRule> effectRules;
-    extern std::unordered_map<std::string, SpellRule> spellRules;
-}
-
+#include "SpellDataPersistence.h"
 
 namespace Parser {
     /**

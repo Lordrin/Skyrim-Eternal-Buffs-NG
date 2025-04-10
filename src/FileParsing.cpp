@@ -1,14 +1,5 @@
 #include "FileParsing.h"
 
-// --- DataStore Namespace ---
-namespace DataStore {
-    std::vector<EffectRule> effectRules;
-    // std::vector<SpellRule> spellRules;
-    std::unordered_map<std::string, SpellRule> spellRules;
-    // std::vector<std::string> blacklistedNames;
-    // std::vector<RE::FormID> blacklistedFormIDs;
-}
-
 // Logs the attributes of BaseRule
 void LogBaseRule(const BaseRule& rule) {
     logger::info("BaseRule:");
@@ -145,7 +136,7 @@ namespace Parser {
     //     // You just need to add the 'areaFilter' field to the EffectRule struct.
 
     //     // Store the parsed rule
-    //     DataStore::effectRules.push_back(std::move(rule));
+    //     SpellDataPersistence::effectRules.push_back(std::move(rule));
     //     logger::info("Parsed Effect rule for '{}' [{:X}] from '{}'", identifier, resolvedEffect->GetFormID(),
     //                     configFileName);
     // }
@@ -199,7 +190,7 @@ namespace Parser {
         if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
         // ... etc for other filters ...
 
-        DataStore::effectRules.push_back(std::move(rule));
+        SpellDataPersistence::effectRules.push_back(std::move(rule));
         logger::info("Parsed Effect rule for '{}' [{:X}] from '{}'", identifier, rule.resolvedForm->GetFormID(),
                      configFileName);
     }
@@ -253,7 +244,7 @@ namespace Parser {
             // Attempt to cast the resolved form to a SpellItem
             if (auto* spellItem = rule.resolvedForm->As<RE::SpellItem>()) {
                 // Store the rule in the map using the spell's full name as the key
-                DataStore::spellRules.emplace(spellItem->GetFullName(), std::move(rule));
+                SpellDataPersistence::spellRules.emplace(spellItem->GetFullName(), std::move(rule));
                 logger::info("Parsed Spell rule for '{}' [{:X}] from '{}'", identifier, spellItem->GetFormID(),
                              configFileName);
             } else {
@@ -262,13 +253,13 @@ namespace Parser {
         } else {
             // Handle the case where the resolved form is nullptr
             if (!rule.nameFilter.empty()) {
-                DataStore::spellRules.emplace(rule.nameFilter, std::move(rule));
+                SpellDataPersistence::spellRules.emplace(rule.nameFilter, std::move(rule));
                 logger::info("Parsed Spell rule for '{}' as name from '{}'", identifier, configFileName);
             }
             logger::warn("Parsed Spell rule for '{}' but resolved form is nullptr", identifier);
         }
         // TODO see if there are any spells that have no full name+
-        // DataStore::spellRules.push_back(std::move(rule));
+        // SpellDataPersistence::spellRules.push_back(std::move(rule));
         // logger::info("Parsed Spell rule for '{}' [{:X}] from '{}'", identifier, rule.resolvedForm->GetFormID(),
         //              configFileName);
     }

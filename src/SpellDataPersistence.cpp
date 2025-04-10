@@ -3,6 +3,9 @@
 #include <SpellCastEventHandler.h>
 
 namespace SpellDataPersistence {
+    std::vector<EffectRule> effectRules;
+    std::unordered_map<std::string, SpellRule> spellRules;
+    
     void CacheSpellForSaving(RE::SpellItem* spell) {
         if (!spell) {
             return;
