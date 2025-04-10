@@ -1,12 +1,12 @@
-      
-// SpellDataPersistence.h
 #pragma once // Use #pragma once for modern header guards
 
 #include <map>
+#include <mutex>
 #include <vector>
-#include <algorithm>  // For std::copy
+#include <algorithm>
 #include <unordered_set>
-#include <SpellLogging.h>
+
+#include "SpellLogging.h"
 
 // Rules from the config file
 // --- Shared Base Structure ---
@@ -84,4 +84,3 @@ namespace SpellDataPersistence {
 
 } // namespace SpellDataPersistence
 
-    

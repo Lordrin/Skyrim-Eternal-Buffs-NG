@@ -1,11 +1,11 @@
 #pragma once
 
-#include <string>
-#include <string_view>  // C++17, efficient for splitting/trimming
-#include <vector>
-#include <algorithm>  // For std::transform, std::find_if
 #include <cctype>     // For ::isspace, ::tolower
+#include <string>
+#include <vector>
 #include <sstream>    // Used in one SplitString implementation option
+#include <algorithm>  // For std::transform, std::find_if
+#include <string_view>  // C++17, efficient for splitting/trimming
 
 namespace Utilities {
 

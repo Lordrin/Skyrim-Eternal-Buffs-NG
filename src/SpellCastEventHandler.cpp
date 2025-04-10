@@ -1,8 +1,7 @@
+#include "SpellLogging.h"
+#include "SpellApplication.h"
 #include "SpellCastEventHandler.h"
-
-#include <SpellApplication.h>
-#include <SpellDataPersistence.h>
-#include <SpellLogging.h>
+#include "SpellDataPersistence.h"
 
 SpellCastEventHandler::SpellCastEventHandler() : reserveSPellId_(0) {
     RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();

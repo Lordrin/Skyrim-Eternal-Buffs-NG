@@ -2,8 +2,8 @@
 
 #include <unordered_set>
 
-#include <SpellDataPersistence.h>
-#include <FileParsing.h>
+#include "FileParsing.h"
+#include "SpellDataPersistence.h"
 
 // Simple structure or use std::pair/tuple to pass data to the task
 struct SpellCastInfo {

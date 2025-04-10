@@ -1,11 +1,11 @@
 #include "Plugin.h"
 
-#include <FileParsing.h>
-#include <SpellApplication.h>
-#include <SpellDataPersistence.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "Config.h"
+#include "FileParsing.h"
+#include "SpellApplication.h"
+#include "SpellDataPersistence.h"
 #include "SpellCastEventHandler.h"
 
 // Template source: https://github.com/SkyrimDev/HelloWorld-using-CommonLibSSE-NG

@@ -1,6 +1,5 @@
 #include "SpellDataPersistence.h"
-
-#include <SpellCastEventHandler.h>
+#include "SpellCastEventHandler.h"
 
 namespace SpellDataPersistence {
     std::vector<EffectRule> effectRules;

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "SimpleIni.h"
-#include "OrderedMap.h"
 #include <functional>
+#include <SimpleIni.h>
+
+#include "OrderedMap.h"
 
 namespace BlinkTeleportConfig {
     class MCM {

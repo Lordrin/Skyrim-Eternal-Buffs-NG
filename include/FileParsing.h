@@ -1,13 +1,12 @@
 #pragma once
 
-#include <StringUtilities.h>
-
+#include <map>
+#include <vector>
+#include <string>
 #include <filesystem>
 #include <functional>
-#include <map>
-#include <string>
-#include <vector>
 
+#include "StringUtilities.h"
 #include "SpellDataPersistence.h"
 
 namespace Parser {
