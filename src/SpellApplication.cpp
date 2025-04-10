@@ -202,9 +202,9 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
     std::unordered_set<RE::FormID> flattenedSpellData = SpellDataPersistence::FlattenSpellEffectsMapToSet(savedSpells);
     SpellEffectsMap AllSavedSpells = SpellDataPersistence::GetAllSavedSpells();
 
-    // DataStore::spellRules
+    // SpellDataPersistence::spellRules
 
-    // Iterate over the active effects and check for matches in the set
+    // Iterate over the active effects and process them
     for (RE::ActiveEffect* activeEffect : *activeEffects) {
         if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject()) {
             continue;
@@ -213,55 +213,38 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         RE::FormID effectFormID = activeEffect->GetBaseObject()->GetFormID();
         SKSE::log::info("  - Active Effect: {:#010x} - {}", effectFormID, activeEffect->GetBaseObject()->GetName());
 
-        if (flattenedSpellData.find(effectFormID) != flattenedSpellData.end()) {
-            RE::FormID linkedSpellFormId = activeEffect->spell->GetFormID();
-            auto it = DataStore::spellRules.find(activeEffect->spell->GetFullName());
-            if (it != DataStore::spellRules.end()) {
-                // Spell found in the map
-                auto& foundSpellInConfig = it->second;
-                if(foundSpellInConfig.resolvedForm && foundSpellInConfig.resolvedForm->GetFormID() == linkedSpellFormId) {
-                    SKSE::log::info("Found spell '{}' in config. Permanent enabled: {}",
-                                    activeEffect->spell->GetFullName(), foundSpellInConfig.isPermanentEnabled);
-                } else {
-                    SKSE::log::warn("Spell '{}' in config does not match linked spell form ID: {:#010x}",
-                                    activeEffect->spell->GetFullName(), linkedSpellFormId);
-                }
-                
-                if (!foundSpellInConfig.isPermanentEnabled) {
-                    SKSE::log::info("Found spell '{}' in config. Dispelling effect.",
-                                    activeEffect->spell->GetFullName(), foundSpellInConfig.isPermanentEnabled);
-                    activeEffect->Dispel(false);  // Dispel the effect if not permanent
-                    // Perform your logic here
-                    continue;  // Skip if not found in the map
-                }
-            } else {
-                // Spell not found in the map
-                SKSE::log::warn("Spell '{}' not found in DataStore::spellRules.", activeEffect->spell->GetFullName());
+        // Check if the effect is in the saved spell data
+        if (flattenedSpellData.find(effectFormID) == flattenedSpellData.end()) {
+            continue;
+        }
+
+        RE::FormID linkedSpellFormId = activeEffect->spell->GetFormID();
+        auto spellRuleIt = SpellDataPersistence::spellRules.find(activeEffect->spell->GetFullName());
+
+        // If the spell is in the SpellDataPersistence::spellRules - Apply rules
+        if (spellRuleIt != SpellDataPersistence::spellRules.end()) {
+            const auto& spellConfig = spellRuleIt->second;
+
+            if (!spellConfig.isPermanentEnabled) {
+                SKSE::log::info("Found spell '{}' in config. Dispelling effect.", activeEffect->spell->GetFullName());
+                activeEffect->Dispel(false);  // Dispel the effect if not marked as permanent
+                continue;
             }
-            // auto foundSpellInConfig = DataStore::spellRules[activeEffect->spell->GetFullName()];
-            // if (foundSpellInConfig.isPermanentEnabled) {
-            //     SKSE::log::info("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
-            //     activeEffect->duration = permanentSpellDuration;  // Set to permanent duration
-            //     activeEffect->elapsedSeconds = 0.0f;              // Reset elapsed time
-            //     SKSE::log::info("  - Effect Duration: {:.2f}", activeEffect->duration);
-            //     SKSE::log::info("  - Effect Elapsed Time: {:.2f}", activeEffect->elapsedSeconds);
-            // } else {
-            //     SKSE::log::info("Permanent spell not enabled for this effect: {:#010x} - {}", linkedSpellFormId,
-            //                     activeEffect->spell->GetName());
-            // }
-            if (AllSavedSpells.find(linkedSpellFormId) !=
-                AllSavedSpells.end()) {  // Check the link the effec to the spell
-                SKSE::log::info("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
-                activeEffect->duration = permanentSpellDuration;  // Set to permanent duration
-                activeEffect->elapsedSeconds = 0.0f;              // Reset elapsed time
-                SKSE::log::info("  - Effect Duration: {:.2f}", activeEffect->duration);
-                SKSE::log::info("  - Effect Elapsed Time: {:.2f}", activeEffect->elapsedSeconds);
-            }
-            SKSE::log::info("  - Active effect not linked to a saved spell: {:#010x} - {}", linkedSpellFormId,
+        } else {
+            SKSE::log::warn("Spell '{}' not found in SpellDataPersistence::spellRules.", activeEffect->spell->GetFullName());
+        }
+
+        // If the effect is linked to a saved spell - Reset duration
+        if (AllSavedSpells.find(linkedSpellFormId) != AllSavedSpells.end()) {
+            SKSE::log::info("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
+            activeEffect->duration = permanentSpellDuration;  // Set to permanent duration
+            activeEffect->elapsedSeconds = 0.0f;              // Reset elapsed time
+        } else {
+            SKSE::log::warn("  - Active effect not linked to a saved spell: {:#010x} - {}", linkedSpellFormId,
                             activeEffect->spell->GetName());
         }
     }
-    SKSE::log::info("Finished applying all permanent spells to player.");
+    SKSE::log::info("Finished applying permanent spells to player.");
 }
 
 void ApplyAllSavedPermanentSpellsToPlayer() {
