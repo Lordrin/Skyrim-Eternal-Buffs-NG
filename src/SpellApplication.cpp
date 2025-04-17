@@ -4,48 +4,20 @@ constexpr RE::FormID MyPermanentAbilitySpellFormID = 0x000800;
 const char* MyPluginName = "LoricaNG.esl";
 const float permanentSpellDuration = 86313600.0f;
 
-void RemoveEffectFromSpell(RE::SpellItem* spell, RE::EffectSetting* effectToRemove) {
-    if (!spell || !effectToRemove) return;
-
-    auto& effects = spell->effects;  // Reference to the effect array
-
-    for (auto it = effects.begin(); it != effects.end(); ++it) {
-        if ((*it) && (*it)->baseEffect == effectToRemove) {
-            SKSE::log::info("Removing effect: {}", effectToRemove->GetFullName());
-            // TODO should delte from static
-            // delete *it;  // Free memory
-            effects.erase(it);  // Remove from the spell
-            break;              // Exit after removing
-        }
-    }
-}
-
-bool RemovePermanentSpellFromActor(RE::SpellItem* spellItem, RE::Actor* actor) {
-    if (!spellItem || !actor) return false;
-
-    RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
-    RE::TESForm* localForm = dataHandler->LookupForm(MyPermanentAbilitySpellFormID, MyPluginName);
-    if (!localForm) {
-        SKSE::log::error("LookupForm failed! Spell not found in {}", MyPluginName);
-        return false;
+void ApplyConfigRulesToSpell(RE::SpellItem* spell) {
+    if (!spell) {
+        SKSE::log::warn("ApplyConfigRulesToSpell: Spell is null");
+        return;
     }
 
-    RE::SpellItem* permanentAbilitySpell = localForm->As<RE::SpellItem>();
-    if (!permanentAbilitySpell) {
-        SKSE::log::warn("Form {} is not a SpellItem!", localForm->formID);
-        return false;
+    // Check if the spell is a permanent ability
+    if (spell->GetFormID() == MyPermanentAbilitySpellFormID) {
+        SKSE::log::info("ApplyConfigRulesToSpell: Permanent ability spell detected, setting duration to {}",
+                        permanentSpellDuration);
+        // spell->SetDuration(permanentSpellDuration);
+    } else {
+        SKSE::log::info("ApplyConfigRulesToSpell: Non-permanent ability spell detected, no changes made.");
     }
-
-    RE::BSTArray<RE::Effect*> copiedEffects;
-    for (auto& effect : spellItem->effects) {
-        if (effect) {
-            SKSE::log::info("Removing effect of Lorica {:#010x}", effect->baseEffect->formID);
-            RemoveEffectFromSpell(permanentAbilitySpell, effect->baseEffect);
-        }
-    }
-
-    actor->RemoveSpell(permanentAbilitySpell);
-    return true;
 }
 
 bool RemoveSpecificActiveEffects(const std::vector<RE::FormID>& activeEffectIds) {
@@ -148,39 +120,6 @@ bool RemoveSpecificActiveEffects(const std::vector<RE::FormID>& activeEffectIds)
     return true;
 }
 
-bool ApplyPermanentSpellToActor(RE::SpellItem* spellItem, RE::Actor* actor) {
-    if (!spellItem || !actor) {
-        SKSE::log::warn("ApplyPermanentSpellToActor: Invalid spell or actor.");
-        return false;
-    }
-
-    RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
-    RE::TESForm* localForm = dataHandler->LookupForm(MyPermanentAbilitySpellFormID, MyPluginName);
-    if (!localForm) {
-        SKSE::log::error("LookupForm failed! Spell not found in {}", MyPluginName);
-        return false;
-    }
-
-    RE::SpellItem* permanentAbilitySpell = localForm->As<RE::SpellItem>();
-    if (!permanentAbilitySpell) {
-        SKSE::log::warn("Form {} is not a SpellItem!", localForm->formID);
-        return false;
-    }
-
-    actor->RemoveSpell(permanentAbilitySpell);
-
-    for (auto& effect : spellItem->effects) {
-        if (effect) {
-            auto* newEffect = new RE::Effect(*effect);
-            newEffect->effectItem.duration = 0;
-            permanentAbilitySpell->effects.push_back(newEffect);
-        }
-    }
-
-    actor->AddSpell(permanentAbilitySpell);
-    return true;
-}
-
 void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
     const SpellEffectsMap& savedSpells = SpellDataPersistence::GetAllSavedSpells();
 
@@ -219,6 +158,11 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         }
 
         RE::FormID linkedSpellFormId = activeEffect->spell->GetFormID();
+        if (auto* spellItem = activeEffect->spell->As<RE::SpellItem>()) {
+            ApplyConfigRulesToSpell(spellItem);  // Apply config rules to the spell
+        } else {
+            SKSE::log::warn("ApplyConfigRulesToSpell: MagicItem is not a SpellItem.");
+        }
         auto spellRuleIt = SpellDataPersistence::spellRules.find(activeEffect->spell->GetFullName());
 
         // If the spell is in the SpellDataPersistence::spellRules - Apply rules
@@ -227,23 +171,62 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
 
             if (!spellConfig.isPermanentEnabled) {
                 SKSE::log::info("Found spell '{}' in config. Dispelling effect.", activeEffect->spell->GetFullName());
-                activeEffect->Dispel(false);  // Dispel the effect if not marked as permanent
+                auto allSpells = SpellDataPersistence::GetAllSavedSpells();
+                if (allSpells.find(linkedSpellFormId) != allSpells.end()) {
+                    activeEffect->Dispel(false); 
+                    SpellDataPersistence::RemoveSpellFromSave(linkedSpellFormId);
+                }
                 continue;
             }
-        } else {
-            SKSE::log::warn("Spell '{}' not found in SpellDataPersistence::spellRules.", activeEffect->spell->GetFullName());
-        }
 
+            // TODO add all rules here
+            // default for uint32_t = 3435973836
+        }
         // If the effect is linked to a saved spell - Reset duration
         if (AllSavedSpells.find(linkedSpellFormId) != AllSavedSpells.end()) {
             SKSE::log::info("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
+            // activeEffect->effect->effectItem.duration = 0;    // Set to 0 to hide timer --- This alters the base
+            // effect. Alters ALL instances of the effect.
             activeEffect->duration = permanentSpellDuration;  // Set to permanent duration
             activeEffect->elapsedSeconds = 0.0f;              // Reset elapsed time
+
+            // reset the effectItem duration
+            // auto formID = activeEffect->effect->baseEffect->GetFormID();
+            // auto form = RE::TESForm::LookupByID(formID);
+            // if (form) {
+            //     auto effectSetting = form->As<RE::EffectSetting>();
+            //     if (effectSetting) {
+            //         logger::info("the duration after reading the form: {}", effectSetting->data);
+            //         // effectSetting->effectItem.duration = permanentSpellDuration;  // Set to permanent duration
+            //     }
+            // }
+            // activeEffect->effect->effectItem.duration = permanentSpellDuration;  // Set to permanent duration
+
+            // auto spellForm = RE::TESForm::LookupByID(linkedSpellFormId);
+            // if (spellForm) {
+            //     auto spellItem = spellForm->As<RE::SpellItem>();
+            //     if (spellItem) {
+            //         logger::info("the duration after reading the form: {}", spellItem->GetLongestDuration());
+            //         for(auto& effect : spellItem->effects) {
+            //             if (effect) {
+            //                 logger::info("                 --- the duration after reading the form: {}",
+            //                 effect->effectItem.duration);
+            //                 // effect->effectItem.duration = permanentSpellDuration;  // Set to permanent duration
+            //             }
+            //         }
+            //     }
+            // }
+
+            // RE::SpellItem* spellItem = activeEffect->spell->As<RE::SpellItem>();
+            // if(spellItem) {
+            //     DisableTimerOfEffectsOnSpell(*spellItem);  // Disable timer for the spell
+            // }
         } else {
             SKSE::log::warn("  - Active effect not linked to a saved spell: {:#010x} - {}", linkedSpellFormId,
                             activeEffect->spell->GetName());
         }
     }
+
     SKSE::log::info("Finished applying permanent spells to player.");
 }
 
@@ -292,18 +275,18 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
     // Reduce threshold slightly, as we are checking *after* the event frame
     // const float timeThreshold = 0.5f;  // Allow a bit more time passage
 
-    const char* spellName = castInfo.spellItem->GetName();
+    const char* spellName = castInfo.spellItem.GetName();
     if (!spellName || spellName[0] == '\0') {
         spellName = "Unnamed Spell";
     }
     // Log context message here, closer to the actual check
     SKSE::log::info("Checking applied effects for spell '{}' ({:#010x}) cast last frame...", spellName,
-                    castInfo.spellItem->GetFormID());
+                    castInfo.spellItem.GetFormID());
 
-    bool isSpellSaved = SpellDataPersistence::IsSpellSaved(castInfo.spellItem->GetFormID());
+    bool isSpellSaved = SpellDataPersistence::IsSpellSaved(castInfo.spellItem.GetFormID());
 
     if (isSpellSaved) {
-        SKSE::log::info("Spell '{}' ({:#010x}) is saved.", spellName, castInfo.spellItem->GetFormID());
+        SKSE::log::info("Spell '{}' ({:#010x}) is saved.", spellName, castInfo.spellItem.GetFormID());
     }
 
     LogAllActiveEffectsOnActor(*player);  // Log active effects for debugging
@@ -323,7 +306,7 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
         //     logger::info("    Active effect associated with spell: {:#010x} - {}", spellItem->GetFormID(),
         //     spellItem->GetName());
         // }
-        if (activeEffect->spell->GetFormID() == castInfo.spellItem->GetFormID() &&
+        if (activeEffect->spell->GetFormID() == castInfo.spellItem.GetFormID() &&
             activeEffect->caster == castInfo.playerHandle &&  // Compare handles
             activeEffect->target->MagicTargetIsActor() &&
             activeEffect->target == player->GetMagicTarget()  // caster == target
@@ -353,18 +336,30 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
                              activeEffect->GetBaseObject()->GetFormID(), mgefName);
                 activeEffect->Dispel(false);  // Remove the effect from the actor
             } else {
-                if (activeEffect->duration > 0.0f) {  // Only if it has a duration
+                if (activeEffect->duration > 0.0f &&
+                    activeEffect->duration < permanentSpellDuration) {  // Only if it has a duration
                     activeEffect->duration = permanentSpellDuration;
-                    SpellDataPersistence::CacheSpellForSaving(castInfo.spellItem);
+                    SpellDataPersistence::CacheSpellForSaving(&castInfo.spellItem);
                 }
             }
             // break;
         }
     }
 
+    // DisableTimerOfEffectsOnSpell(castInfo.spellItem);  // Disable the timer of the spell effects
+
+    // for(RE::Effect* effect : castInfo.spellItem->effects) {
+    //     if (!effect) {
+    //         continue;
+    //     }
+    //     effect->effectItem.duration = 0;  // Set duration to 0 so the timer is hidden
+    // }
+
+    // spellItem->effects[0]->effectItem.duration = 0;  // Set duration to 0 for the first effect
+
     if (isSpellSaved) {
-        SpellDataPersistence::RemoveSpellFromSave(castInfo.spellItem->GetFormID());
-        SKSE::log::info("Spell '{}' ({:#010x}) is no longer saved.", spellName, castInfo.spellItem->GetFormID());
+        SpellDataPersistence::RemoveSpellFromSave(castInfo.spellItem.GetFormID());
+        SKSE::log::info("Spell '{}' ({:#010x}) is no longer saved.", spellName, castInfo.spellItem.GetFormID());
         return;
     }
 }

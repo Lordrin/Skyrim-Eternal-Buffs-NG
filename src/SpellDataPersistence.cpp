@@ -1,10 +1,39 @@
 #include "SpellDataPersistence.h"
+
 #include "SpellCastEventHandler.h"
 
 namespace SpellDataPersistence {
     std::vector<EffectRule> effectRules;
     std::unordered_map<std::string, SpellRule> spellRules;
-    
+
+    // Logs the attributes of BaseRule
+    void LogBaseRule(const BaseRule& rule) {
+        logger::info("BaseRule:");
+        logger::info("  - Source File: {}", rule.sourceFile);
+        logger::info("  - Resolved Form: {}", rule.resolvedForm ? rule.resolvedForm->GetName() : "nullptr");
+        logger::info("  - Name Filter: {}", rule.nameFilter);
+        logger::info("  - Is Permanent Enabled: {}", rule.isPermanentEnabled ? "true" : "false");
+        logger::info("  - Keyword Filter: {}", rule.keywordFilter);
+    }
+
+    // Logs the attributes of EffectRule
+    void LogEffectRule(const EffectRule& rule) {
+        LogBaseRule(rule);  // Log BaseRule attributes
+        logger::info("EffectRule:");
+        logger::info("  - Duration Filter: {}", rule.durationFilter);
+        logger::info("  - Min Duration Filter: {}", rule.minDurationFilter);
+        logger::info("  - Magnitude Filter: {}", rule.magnitudeFilter);
+    }
+
+    // Logs the attributes of SpellRule
+    void LogSpellRule(const SpellRule& rule) {
+        LogBaseRule(rule);  // Log BaseRule attributes
+        logger::info("SpellRule:");
+        logger::info("  - Duration Filter: {}", rule.durationFilter);
+        logger::info("  - Min Duration Filter: {}", rule.minDurationFilter);
+        logger::info("  - Magnitude Filter: {}", rule.magnitudeFilter);
+    }
+
     void CacheSpellForSaving(RE::SpellItem* spell) {
         if (!spell) {
             return;
@@ -249,4 +278,39 @@ namespace SpellDataPersistence {
 
         return flattened;
     }
+}
+
+void SpellDataPersistence::LogSpellSFromMap(const SpellEffectsMap& spellEffectsMap) {
+    if (spellEffectsMap.empty()) {
+        SKSE::log::info(" SpellEffectsMap map is currently empty. No data loaded or cached.");
+        SKSE::log::info("--- Finished Logging Spell Data ---");
+        return;
+    }
+
+    SKSE::log::info("  Found data for {} spells:", spellEffectsMap.size());
+
+    int spellCount = 0;
+    for (const auto& [spellID, effectIDs] : spellEffectsMap) {
+        spellCount++;
+        RE::TESForm* spellForm = RE::TESForm::LookupByID(spellID);
+        RE::SpellItem* spellItem = spellForm ? spellForm->As<RE::SpellItem>() : nullptr;
+        std::string spellName = spellItem && spellItem->GetName() ? spellItem->GetName() : "Unknown/Lookup Failed";
+
+        SKSE::log::info("  {}. Spell ID: {:#010x} ('{}')", spellCount, spellID, spellName);
+
+        if (effectIDs.empty()) {
+            SKSE::log::info("      - No associated effect IDs recorded.");
+        } else {
+            SKSE::log::info("      - Associated Effect IDs ({}):", effectIDs.size());
+            int effectCount = 0;
+            for (RE::FormID effectID : effectIDs) {
+                effectCount++;
+                RE::EffectSetting* mgef = RE::TESForm::LookupByID<RE::EffectSetting>(effectID);
+                std::string effectName = mgef && mgef->GetName() ? mgef->GetName() : "Unknown/Lookup Failed";
+                SKSE::log::info("        {}. Effect ID: {:#010x} ('{}')", effectCount, effectID, effectName);
+            }
+        }
+    }
+
+    SKSE::log::info("--- Finished Logging Spell Data ({} spells processed) ---", spellEffectsMap.size());
 }

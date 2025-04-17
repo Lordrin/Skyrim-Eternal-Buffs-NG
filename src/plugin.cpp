@@ -41,8 +41,8 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
             SKSE::log::info("PostLoadGame event received, starting SpellCastDetector...");
             SpellCastEventHandler::Register();
+            SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
             ApplyAllSavedPermanentSpellsToPlayer();
-            
         }
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             SKSE::log::info("DataLoaded event received, starting SpellCastDetector...");

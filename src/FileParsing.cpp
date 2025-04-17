@@ -1,34 +1,7 @@
 #include "FileParsing.h"
 
-// Logs the attributes of BaseRule
-void LogBaseRule(const BaseRule& rule) {
-    logger::info("BaseRule:");
-    logger::info("  - Source File: {}", rule.sourceFile);
-    logger::info("  - Resolved Form: {}", rule.resolvedForm ? rule.resolvedForm->GetName() : "nullptr");
-    logger::info("  - Name Filter: {}", rule.nameFilter);
-    logger::info("  - Is Permanent Enabled: {}", rule.isPermanentEnabled ? "true" : "false");
-    logger::info("  - Keyword Filter: {}", rule.keywordFilter);
-}
+#include <sstream>
 
-// Logs the attributes of EffectRule
-void LogEffectRule(const EffectRule& rule) {
-    LogBaseRule(rule);  // Log BaseRule attributes
-    logger::info("EffectRule:");
-    logger::info("  - Duration Filter: {}", rule.durationFilter);
-    logger::info("  - Min Duration Filter: {}", rule.minDurationFilter);
-    logger::info("  - Magnitude Filter: {}", rule.magnitudeFilter);
-}
-
-// Logs the attributes of SpellRule
-void LogSpellRule(const SpellRule& rule) {
-    LogBaseRule(rule);  // Log BaseRule attributes
-    logger::info("SpellRule:");
-    logger::info("  - Duration Filter: {}", rule.durationFilter);
-    logger::info("  - Min Duration Filter: {}", rule.minDurationFilter);
-    logger::info("  - Magnitude Filter: {}", rule.magnitudeFilter);
-}
-
-// --- 3. Parser Namespace ---
 namespace Parser {
 
     // --- Helper: Resolve Identifier (Generalized) ---
@@ -111,44 +84,14 @@ namespace Parser {
         return Utilities::TrimString(parts[0]);
     }
 
-    // void ParseFilters(const std::string& configFileName){
-    //     // Create the rule object
-    //     EffectRule rule;
-    //     rule.sourceFile = configFileName;
-    //     rule.resolvedForm = resolvedEffect;
-
-    //     // --- Assign Filters by Position ---
-    //     // Use .at() with checks or conditional assignment for safety/extensibility
-
-    //     // Filter 1: Name
-    //     if (parts.size() > 1) rule.nameFilter = Utilities::TrimString(parts[1]);
-    //     // Filter 2: Keywords
-    //     if (parts.size() > 2) rule.keywordFilter = Utilities::TrimString(parts[2]);
-    //     // Filter 3: Duration
-    //     if (parts.size() > 3) rule.durationFilter = Utilities::TrimString(parts[3]);
-    //     // Filter 4: MinDuration
-    //     if (parts.size() > 4) rule.minDurationFilter = Utilities::TrimString(parts[4]);
-    //     // Filter 5: Magnitude
-    //     if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
-
-    //     // **Extensibility Point:** If you add a 6th filter (e.g., Area) later:
-    //     // if (parts.size() > 6) rule.areaFilter = Utilities::TrimString(parts[6]);
-    //     // You just need to add the 'areaFilter' field to the EffectRule struct.
-
-    //     // Store the parsed rule
-    //     SpellDataPersistence::effectRules.push_back(std::move(rule));
-    //     logger::info("Parsed Effect rule for '{}' [{:X}] from '{}'", identifier, resolvedEffect->GetFormID(),
-    //                     configFileName);
-    // }
-
     void ParseBaseRule(BaseRule& rule, const std::vector<std::string>& parts) {
         logger::info("Parsing BaseRule from parts: {}", parts.size());
-        // 4. Assign as Name
-        if (rule.resolvedForm == nullptr) {  // if FormID is not resolved, treat it as the name
-            // Filter 0: Name
-            if (parts.size() > 0) rule.nameFilter = Utilities::TrimString(parts[0]);
-            logger::info("Parsed BaseRule name: {}", rule.nameFilter);
-        }
+        // // 4. Assign as Name
+        // if (rule.resolvedForm == nullptr) {  // if FormID is not resolved, treat it as the name
+        //     // Filter 0: Name
+        //     if (parts.size() > 0) rule.nameFilter = Utilities::TrimString(parts[0]);
+        //     logger::info("Parsed BaseRule name: {}", rule.nameFilter);
+        // }
         // Filter 1: IsPermanent
         if (parts.size() > 1) {
             std::string isPermanentString = Utilities::TrimString(parts[1]);
@@ -182,13 +125,13 @@ namespace Parser {
         EffectRule rule;
 
         ParseBaseRule(rule, parts);  // Parse common filters
-        // Filter 4: Duration
-        if (parts.size() > 3) rule.durationFilter = Utilities::TrimString(parts[3]);
-        // Filter 5: MinDuration
-        if (parts.size() > 4) rule.minDurationFilter = Utilities::TrimString(parts[4]);
-        // Filter 6: Magnitude
-        if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
-        // ... etc for other filters ...
+        // // Filter 4: Duration
+        // if (parts.size() > 3) rule.durationFilter = Utilities::TrimString(parts[3]);
+        // // Filter 5: MinDuration
+        // if (parts.size() > 4) rule.minDurationFilter = Utilities::TrimString(parts[4]);
+        // // Filter 6: Magnitude
+        // if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
+        // // ... etc for other filters ...
 
         SpellDataPersistence::effectRules.push_back(std::move(rule));
         logger::info("Parsed Effect rule for '{}' [{:X}] from '{}'", identifier, rule.resolvedForm->GetFormID(),
@@ -202,10 +145,54 @@ namespace Parser {
             return;
         }
 
+        // SpellRule rawRule;
+
+        // auto fields = rawRule.GetFields();
+        // for (const auto& fieldKey : fields.GetOrder()) {
+        //     logger::info("Field: {}", fieldKey);
+        // }
+
+        // for (const auto& item : fields.GetMap()){
+        //     logger::info("Field from map: {}", item.first);
+        //     std::visit(
+        //         [](const auto& value) {
+        //             using T = std::decay_t<decltype(value)>;  // Get the actual type
+        //             // print the type of the value
+        //             // logger::info("Type: {}", typeid(value).name());
+
+        //             if constexpr (std::is_same_v<T, bool>) {
+        //                 logger::info("bool: {}", value);
+        //             } else if constexpr (std::is_same_v<T, RE::TESForm*>) {
+        //                 logger::info("TESForm*");
+        //             } else if constexpr (std::is_same_v<T, std::string*>) {
+        //                 logger::info("String: \"{}\"", *value);
+        //             }
+        //         },
+        //         item.second);  // Pass the variant item to std::visit
+        // }
+
+        // for (const auto& item : rawRule.GetFields().GetMap()) {
+        //     // Use std::visit to safely access the value based on its current type
+        //     std::visit([](const auto& value) {
+        //         // 'value' will have the actual type (int, float, or string)
+        //         // inside this lambda
+        //         using T = std::decay_t<decltype(value)>; // Get the actual type
+
+        //         if constexpr (std::is_same_v<T, bool>) {
+        //             std::cout << "bool: " << value << std::endl;
+        //         } else if constexpr (std::is_same_v<T, RE::TESForm*>) {
+        //             std::cout << "Float: " << value << std::endl;
+        //         } else if constexpr (std::is_same_v<T, std::string*>) {
+        //             std::cout << "String: \"" << value << "\"" << std::endl;
+        //         }
+        //     }, item.second); // Pass the variant item to std::visit
+        // }
+
         std::string identifier = Utilities::TrimString(parts[0]);
         // *** Resolve as the SPECIFIC type ***
         RE::SpellItem* resolvedSpell = ResolveIdentifier<RE::SpellItem>(identifier, configFileName);
         SpellRule rule;
+        std::vector<std::string> ruleParts = rule.GetFields().GetOrder();
         if (!resolvedSpell) {
             if (parts.size() > 0) rule.nameFilter = Utilities::TrimString(parts[0]);
             logger::info("Parsed BaseRule name: {}", rule.nameFilter);
@@ -218,28 +205,122 @@ namespace Parser {
         logger::info("SpellRule sourceFile: {}", rule.sourceFile);
         // *** Store in the common base pointer ***
 
-        ParseBaseRule(rule, parts);  // Parse common filters
+        // ParseBaseRule(rule, parts);  // Parse common filters
         // Filter 3: Duration
-        if (parts.size() > 3) rule.durationFilter = Utilities::TrimString(parts[3]);
+        // if (parts.size() > 3) rule.durationFilter = Utilities::TrimString(parts[3]);
         // Filter 4: MinDuration
-        if (parts.size() > 4) rule.minDurationFilter = Utilities::TrimString(parts[4]);
+        // if (parts.size() > 4) rule.minDurationFilter = Utilities::TrimString(parts[4]);
         // Filter 5: Magnitude
-        if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
-        // ... etc ...
-        // Parse chance from the last part if it's numeric (as shown previously)
-        //  if (!parts.empty()) {
-        //     std::string lastPart = Utilities::TrimString(parts.back());
-        //     try {
-        //         size_t charsParsed = 0;
-        //         float parsedChance = std::stof(lastPart, &charsParsed);
-        //         if (charsParsed == lastPart.length() && parsedChance >= 0.0f && parsedChance <= 100.0f) {
-        //             rule.chance = parsedChance;
-        //             // Optional: remove chance part from filter processing if needed
-        //         }
-        //     } catch (...) { /* not a float, treat as filter */ }
-        //  }
+        // if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
 
-        LogSpellRule(rule);  // Log the parsed rule for debugging
+        auto fields = rule.GetFields();
+        auto fieldOrder = fields.GetOrder();
+        std::vector<std::string> trimmedFieldOrder(fieldOrder.begin() + 2, fieldOrder.end());
+
+        std::ostringstream oss;
+        for (size_t i = 0; i < trimmedFieldOrder.size(); ++i) {
+            if (i != 0) {
+                oss << ", ";
+            }
+            oss << trimmedFieldOrder[i];
+        }
+        logger::info("Field order: {}", oss.str());
+
+        auto fieldMap = fields.GetMap();
+
+        for (size_t i = 1; i < parts.size() && i < trimmedFieldOrder.size(); i++) {
+            auto& matchingRuleKey = trimmedFieldOrder[i];
+
+            auto& fieldValue = fieldMap[matchingRuleKey];
+
+            std::visit(
+                [&parts, i, matchingRuleKey](auto& value) {
+                    using T = std::decay_t<decltype(value)>;  // Get the actual type
+
+                    try {
+                        std::string trimmedValue = Utilities::TrimString(parts[i]);
+                        if (trimmedValue == "NONE") {
+                            return;
+                        }
+
+                        if constexpr (std::is_same_v<T, std::string*>) {
+                            *value = Utilities::TrimString(parts[i]);
+                            logger::info("Field: {} set to {}", matchingRuleKey, *value);
+                        } else if constexpr (std::is_same_v<T, bool*>) {
+                            std::istringstream(parts[i]) >> std::boolalpha >> *value;
+                            logger::info("Field: {} set to {}", matchingRuleKey, *value);
+                        } else if constexpr (std::is_same_v<T, uint32_t*>) {
+                            *value = std::stoul(trimmedValue, nullptr, 10);
+                            logger::info("Field: {} set to {}", matchingRuleKey, *value);
+                        }
+                    } catch (const std::invalid_argument& e) {
+                        logger::error("Invalid argument for field '{}': {}", matchingRuleKey, e.what());
+                    } catch (const std::out_of_range& e) {
+                        logger::error("Out of range for field '{}': {}", matchingRuleKey, e.what());
+                    } catch (...) {
+                        logger::error("Unknown error for field '{}'", matchingRuleKey);
+                    }
+                },
+                fieldValue);  // Pass the variant item to std::visit
+        }
+
+        // for(const auto& fieldKey : fields.GetOrder()){
+        //     if (fieldMap.find(fieldName) != fieldMap.end()) {
+        //         logger::info("Field: {}", fieldKey);
+        //     } else {
+        //         logger::warn("Field not found: {}", fieldKey);
+        //     }
+        //     logger::info("Field: {}", fieldKey);
+        // }
+        // for (const auto& item : fields.GetMap()) {
+        //     logger::info("Field from map: {}", item.first);
+        //     std::visit(
+        //         [](const auto& value) {
+        //             using T = std::decay_t<decltype(value)>;  // Get the actual type
+
+        //             if constexpr (std::is_same_v<T, bool>) {
+        //                 logger::info("bool: {}", value);
+        //             } else if constexpr (std::is_same_v<T, RE::TESForm*>) {
+        //                 logger::info("TESForm*: {:#010x}", value->GetFormID());
+        //             } else if constexpr (std::is_same_v<T, std::string*>) {
+        //                 logger::info("String: \"{}\"", *value);
+        //             }
+        //         },
+        //         item.second);  // Pass the variant item to std::visit
+        // }
+
+        // try {
+        //     for (const auto& item : rule.GetFields().GetMap()) {
+        //         logger::info("Field: {}", item.first);
+        //         // Check if the variant is valid
+        //         if (item.second.valueless_by_exception()) {
+        //             logger::warn("RuleVariant is valueless for field: {}", item.first);
+        //             continue;
+        //         }
+        //         // Use std::visit to safely access the value based on its current type
+        //         std::visit(
+        //             [](const auto& value) {
+        //                 // 'value' will have the actual type (int, float, or string)
+        //                 // inside this lambda
+        //                 using T = std::decay_t<decltype(value)>;  // Get the actual type
+
+        //                 if constexpr (std::is_same_v<T, bool>) {
+        //                     SKSE::log::info("bool: {}", value);
+        //                 } else if constexpr (std::is_same_v<T, RE::TESForm*>) {
+        //                     SKSE::log::info("TESForm*");
+        //                 } else if constexpr (std::is_same_v<T, std::string*>) {
+        //                     SKSE::log::info("String: \"{}\"", *value);
+        //                 }
+        //             },
+        //             item.second);  // Pass the variant item to std::visit
+        //     }
+        // } catch (const std::bad_variant_access& e) {
+        //     logger::error("Error accessing variant: {}", e.what());
+        // } catch (...) {
+        //     logger::error("Unknown error accessing variant");
+        // }
+
+        SpellDataPersistence::LogSpellRule(rule);  // Log the parsed rule for debugging
         if (rule.resolvedForm) {
             // Attempt to cast the resolved form to a SpellItem
             if (auto* spellItem = rule.resolvedForm->As<RE::SpellItem>()) {

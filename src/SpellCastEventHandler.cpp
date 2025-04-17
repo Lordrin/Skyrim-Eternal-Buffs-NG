@@ -32,16 +32,28 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     }
 
     // --- Get Spell Item ---
-    RE::FormID spellFormID = event->spell;
-    RE::SpellItem* spellItem = RE::TESForm::LookupByID<RE::SpellItem>(spellFormID);
-    if (!spellItem) {
-        // SKSE::log::debug("SpellCastEvent: Failed to lookup SpellItem for FormID {:#010x}", spellFormID);
+    RE::FormID formID = event->spell;
+
+    RE::TESForm* form = RE::TESForm::LookupByID(formID);
+    if (!form) {
         return RE::BSEventNotifyControl::kContinue;
     }
 
-    LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
+    if (form->Is(RE::FormType::Shout)) {  // Check if the form is a shout
+        RE::TESShout* shout = form->As<RE::TESShout>();
+        if (shout) {
+            const char* shoutName = shout->GetName();
+            SKSE::log::info("Player used a shout:");
+            SKSE::log::info("  Name: {}", shoutName ? shoutName : "Unnamed Shout");
+            SKSE::log::info("  FormID: {:#010x}", shout->GetFormID());
+            return RE::BSEventNotifyControl::kContinue;  // Exit early if it's a shout
+        }
+    }
 
-    // LogAllSavedSpellData();
+    RE::SpellItem* spellItem = form->As<RE::SpellItem>(); // RE::TESForm::LookupByID<RE::SpellItem>(form);
+    if (!spellItem) {
+        return RE::BSEventNotifyControl::kContinue;
+    }
 
     const char* spellName = spellItem->GetName();
     SKSE::log::info("Player casting spell:");
@@ -59,11 +71,20 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
                         spellItem->GetFormID());
         return RE::BSEventNotifyControl::kContinue;  // Exit early for concentration spells
     }
+
+    // spellItem->effects[0]->effectItem.duration = 0;  // Set duration to 0 for the first effect
+    // auto magicItem = form->As<RE::MagicItem>();
+    // if (!magicItem) {
+    //     SKSE::log::error("Failed to cast spell: MagicItem is null.");
+    //     return RE::BSEventNotifyControl::kContinue;
+    // }
+    // magicItem.eff
+    // spellItem->effects[0]->baseEffect->data.
     // --- End of Concentration Check ---
     RE::ActorHandle playerHandle = playerActor->GetHandle();
 
     // Package the data
-    SpellCastInfo info{spellItem, playerHandle};
+    SpellCastInfo info{*spellItem, playerHandle};
 
     // Schedule the CheckAppliedEffects function to run on the next UI update cycle
     auto taskInterface = SKSE::GetTaskInterface();

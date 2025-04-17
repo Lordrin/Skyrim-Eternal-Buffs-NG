@@ -8,6 +8,5 @@
 
 #include <chrono>
 
-using SpellEffectsMap = std::map<RE::FormID, std::vector<RE::FormID>>;
 using namespace std::literals;
 namespace logger = SKSE::log;

@@ -1,40 +1,5 @@
 #include "SpellLogging.h"
 
-void LogSpellSFromMap(const SpellEffectsMap& spellEffectsMap) {
-    if (spellEffectsMap.empty()) {
-        SKSE::log::info(" SpellEffectsMap map is currently empty. No data loaded or cached.");
-        SKSE::log::info("--- Finished Logging Spell Data ---");
-        return;
-    }
-
-    SKSE::log::info("  Found data for {} spells:", spellEffectsMap.size());
-
-    int spellCount = 0;
-    for (const auto& [spellID, effectIDs] : spellEffectsMap) {
-        spellCount++;
-        RE::TESForm* spellForm = RE::TESForm::LookupByID(spellID);
-        RE::SpellItem* spellItem = spellForm ? spellForm->As<RE::SpellItem>() : nullptr;
-        std::string spellName = spellItem && spellItem->GetName() ? spellItem->GetName() : "Unknown/Lookup Failed";
-
-        SKSE::log::info("  {}. Spell ID: {:#010x} ('{}')", spellCount, spellID, spellName);
-
-        if (effectIDs.empty()) {
-            SKSE::log::info("      - No associated effect IDs recorded.");
-        } else {
-            SKSE::log::info("      - Associated Effect IDs ({}):", effectIDs.size());
-            int effectCount = 0;
-            for (RE::FormID effectID : effectIDs) {
-                effectCount++;
-                RE::EffectSetting* mgef = RE::TESForm::LookupByID<RE::EffectSetting>(effectID);
-                std::string effectName = mgef && mgef->GetName() ? mgef->GetName() : "Unknown/Lookup Failed";
-                SKSE::log::info("        {}. Effect ID: {:#010x} ('{}')", effectCount, effectID, effectName);
-            }
-        }
-    }
-
-    SKSE::log::info("--- Finished Logging Spell Data ({} spells processed) ---", spellEffectsMap.size());
-}
-
 /**
  * @brief Logs details about all spells currently stored in the SpellDataPersistence runtime map.
  * @warning This function performs potentially numerous FormID lookups. Calling it frequently
@@ -115,12 +80,25 @@ void LogAllActiveEffectsOnActor(RE::Actor& actor) {
 
         RE::FormID effectFormID = activeEffect->GetBaseObject()->GetFormID();
         SKSE::log::info("  - Active Effect: {:#010x} - {}", effectFormID, activeEffect->GetBaseObject()->GetName());
-        //spell acosiated with the active effect
+
+        // Spell associated with the active effect
         RE::SpellItem* spellItem = activeEffect->spell->As<RE::SpellItem>();
         if (spellItem) {
             logger::info("  - Active effect associated with spell: {:#010x} - {}", spellItem->GetFormID(), spellItem->GetName());
         } else {
-            SKSE::log::warn("    - No associated spell found for active effect: {:#010x}", effectFormID);
+            // Check if the active effect is associated with a perk or ability
+            RE::TESForm* sourceForm = activeEffect->spell;
+            if (sourceForm) {
+                if (auto* perk = sourceForm->As<RE::BGSPerk>()) {
+                    logger::info("  - Active effect associated with perk: {:#010x} - {}", perk->GetFormID(), perk->GetName());
+                } else if (auto* ability = sourceForm->As<RE::SpellItem>()) {
+                    logger::info("  - Active effect associated with ability: {:#010x} - {}", ability->GetFormID(), ability->GetName());
+                } else {
+                    SKSE::log::warn("    - No associated spell, perk, or ability found for active effect: {:#010x}", effectFormID);
+                }
+            } else {
+                SKSE::log::warn("    - No source form found for active effect: {:#010x}", effectFormID);
+            }
         }
     }
     logger::info("active effects size: {}", activeEffectsCount);
