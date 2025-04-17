@@ -3,37 +3,6 @@
 #include "SpellCastEventHandler.h"
 
 namespace SpellDataPersistence {
-    std::vector<EffectRule> effectRules;
-    std::unordered_map<std::string, SpellRule> spellRules;
-
-    // Logs the attributes of BaseRule
-    void LogBaseRule(const BaseRule& rule) {
-        logger::info("BaseRule:");
-        logger::info("  - Source File: {}", rule.sourceFile);
-        logger::info("  - Resolved Form: {}", rule.resolvedForm ? rule.resolvedForm->GetName() : "nullptr");
-        logger::info("  - Name Filter: {}", rule.nameFilter);
-        logger::info("  - Is Permanent Enabled: {}", rule.isPermanentEnabled ? "true" : "false");
-        logger::info("  - Keyword Filter: {}", rule.keywordFilter);
-    }
-
-    // Logs the attributes of EffectRule
-    void LogEffectRule(const EffectRule& rule) {
-        LogBaseRule(rule);  // Log BaseRule attributes
-        logger::info("EffectRule:");
-        logger::info("  - Duration Filter: {}", rule.durationFilter);
-        logger::info("  - Min Duration Filter: {}", rule.minDurationFilter);
-        logger::info("  - Magnitude Filter: {}", rule.magnitudeFilter);
-    }
-
-    // Logs the attributes of SpellRule
-    void LogSpellRule(const SpellRule& rule) {
-        LogBaseRule(rule);  // Log BaseRule attributes
-        logger::info("SpellRule:");
-        logger::info("  - Duration Filter: {}", rule.durationFilter);
-        logger::info("  - Min Duration Filter: {}", rule.minDurationFilter);
-        logger::info("  - Magnitude Filter: {}", rule.magnitudeFilter);
-    }
-
     void CacheSpellForSaving(RE::SpellItem* spell) {
         if (!spell) {
             return;

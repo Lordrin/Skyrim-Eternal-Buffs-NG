@@ -85,6 +85,7 @@ target_sources(
         "include/SpellApplication.h" "src/SpellApplication.cpp"
         "include/FileParsing.h" "src/FileParsing.cpp"
         "include/StringUtilities.h" "src/StringUtilities.cpp"
+        "include/ConfigRules.h" "src/ConfigRules.cpp"
 )
 
 target_precompile_headers(

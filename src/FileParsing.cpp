@@ -84,29 +84,29 @@ namespace Parser {
         return Utilities::TrimString(parts[0]);
     }
 
-    void ParseBaseRule(BaseRule& rule, const std::vector<std::string>& parts) {
-        logger::info("Parsing BaseRule from parts: {}", parts.size());
-        // // 4. Assign as Name
-        // if (rule.resolvedForm == nullptr) {  // if FormID is not resolved, treat it as the name
-        //     // Filter 0: Name
-        //     if (parts.size() > 0) rule.nameFilter = Utilities::TrimString(parts[0]);
-        //     logger::info("Parsed BaseRule name: {}", rule.nameFilter);
-        // }
-        // Filter 1: IsPermanent
-        if (parts.size() > 1) {
-            std::string isPermanentString = Utilities::TrimString(parts[1]);
-            if (isPermanentString == "true" || isPermanentString == "1") {
-                rule.isPermanentEnabled = true;
-            } else if (isPermanentString == "false" || isPermanentString == "0") {
-                rule.isPermanentEnabled = false;
-            } else {
-                logger::warn("Invalid value for IsPermanent in '{}': '{}'. Defaulting to true.", rule.sourceFile,
-                             isPermanentString);
-            }
-        }
-        // Filter 2: Keywords
-        if (parts.size() > 2) rule.keywordFilter = Utilities::TrimString(parts[2]);
-    }
+    // void ParseBaseRule(BaseRule& rule, const std::vector<std::string>& parts) {
+    //     logger::info("Parsing BaseRule from parts: {}", parts.size());
+    //     // // 4. Assign as Name
+    //     // if (rule.resolvedForm == nullptr) {  // if FormID is not resolved, treat it as the name
+    //     //     // Filter 0: Name
+    //     //     if (parts.size() > 0) rule.nameFilter = Utilities::TrimString(parts[0]);
+    //     //     logger::info("Parsed BaseRule name: {}", rule.nameFilter);
+    //     // }
+    //     // Filter 1: IsPermanent
+    //     if (parts.size() > 1) {
+    //         std::string isPermanentString = Utilities::TrimString(parts[1]);
+    //         if (isPermanentString == "true" || isPermanentString == "1") {
+    //             rule.isPermanentEnabled = true;
+    //         } else if (isPermanentString == "false" || isPermanentString == "0") {
+    //             rule.isPermanentEnabled = false;
+    //         } else {
+    //             logger::warn("Invalid value for IsPermanent in '{}': '{}'. Defaulting to true.", rule.sourceFile,
+    //                          isPermanentString);
+    //         }
+    //     }
+    //     // Filter 2: Keywords
+    //     if (parts.size() > 2) rule.keywordFilter = Utilities::TrimString(parts[2]);
+    // }
 
     // --- Specific Parsing Function for "Effect = ..." rules ---
     void ParseEffectRule(const std::string& valueString, const std::string& configFileName) {
@@ -122,20 +122,20 @@ namespace Parser {
             return;
         }  // Error logged by resolver
 
-        EffectRule rule;
+        // EffectRule rule;
 
-        ParseBaseRule(rule, parts);  // Parse common filters
-        // // Filter 4: Duration
-        // if (parts.size() > 3) rule.durationFilter = Utilities::TrimString(parts[3]);
-        // // Filter 5: MinDuration
-        // if (parts.size() > 4) rule.minDurationFilter = Utilities::TrimString(parts[4]);
-        // // Filter 6: Magnitude
-        // if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
-        // // ... etc for other filters ...
+        // ParseBaseRule(rule, parts);  // Parse common filters
+        // // // Filter 4: Duration
+        // // if (parts.size() > 3) rule.durationFilter = Utilities::TrimString(parts[3]);
+        // // // Filter 5: MinDuration
+        // // if (parts.size() > 4) rule.minDurationFilter = Utilities::TrimString(parts[4]);
+        // // // Filter 6: Magnitude
+        // // if (parts.size() > 5) rule.magnitudeFilter = Utilities::TrimString(parts[5]);
+        // // // ... etc for other filters ...
 
-        SpellDataPersistence::effectRules.push_back(std::move(rule));
-        logger::info("Parsed Effect rule for '{}' [{:X}] from '{}'", identifier, rule.resolvedForm->GetFormID(),
-                     configFileName);
+        // SpellDataPersistence::effectRules.push_back(std::move(rule));
+        // logger::info("Parsed Effect rule for '{}' [{:X}] from '{}'", identifier, rule.resolvedForm->GetFormID(),
+        //              configFileName);
     }
 
     // --- Specific Parsing Function for "Spell = ..." rules ---
@@ -145,7 +145,21 @@ namespace Parser {
             return;
         }
 
-        // SpellRule rawRule;
+        SpellRule spellRule;
+        auto spellRuleParsers = spellRule.GetParsers();
+        auto parserOrder = spellRule.GetParsers().GetOrder();
+        auto parseMap = spellRule.GetParsers().GetMap();
+
+        for (size_t i = 0; i < parts.size() && i < parserOrder.size(); i++) {
+            auto& matchingRuleKey = parserOrder[i];
+            auto it = parseMap.find(matchingRuleKey);
+            if (it != parseMap.end()) {
+                it->second(parts[i]);
+            } else {
+                logger::warn("Unknown parser for part {}: {}", i, parts[i]);
+            }
+        }
+
 
         // auto fields = rawRule.GetFields();
         // for (const auto& fieldKey : fields.GetOrder()) {
@@ -320,25 +334,25 @@ namespace Parser {
         //     logger::error("Unknown error accessing variant");
         // }
 
-        SpellDataPersistence::LogSpellRule(rule);  // Log the parsed rule for debugging
-        if (rule.resolvedForm) {
-            // Attempt to cast the resolved form to a SpellItem
-            if (auto* spellItem = rule.resolvedForm->As<RE::SpellItem>()) {
-                // Store the rule in the map using the spell's full name as the key
-                SpellDataPersistence::spellRules.emplace(spellItem->GetFullName(), std::move(rule));
-                logger::info("Parsed Spell rule for '{}' [{:X}] from '{}'", identifier, spellItem->GetFormID(),
-                             configFileName);
-            } else {
-                logger::warn("Parsed Spell rule for '{}' but resolved form is not a SpellItem", identifier);
-            }
-        } else {
-            // Handle the case where the resolved form is nullptr
-            if (!rule.nameFilter.empty()) {
-                SpellDataPersistence::spellRules.emplace(rule.nameFilter, std::move(rule));
-                logger::info("Parsed Spell rule for '{}' as name from '{}'", identifier, configFileName);
-            }
-            logger::warn("Parsed Spell rule for '{}' but resolved form is nullptr", identifier);
-        }
+        // SpellDataPersistence::LogSpellRule(rule);  // Log the parsed rule for debugging
+        // if (rule.resolvedForm) {
+        //     // Attempt to cast the resolved form to a SpellItem
+        //     if (auto* spellItem = rule.resolvedForm->As<RE::SpellItem>()) {
+        //         // Store the rule in the map using the spell's full name as the key
+        //         SpellDataPersistence::spellRules.emplace(spellItem->GetFullName(), std::move(rule));
+        //         logger::info("Parsed Spell rule for '{}' [{:X}] from '{}'", identifier, spellItem->GetFormID(),
+        //                      configFileName);
+        //     } else {
+        //         logger::warn("Parsed Spell rule for '{}' but resolved form is not a SpellItem", identifier);
+        //     }
+        // } else {
+        //     // Handle the case where the resolved form is nullptr
+        //     if (!rule.nameFilter.empty()) {
+        //         SpellDataPersistence::spellRules.emplace(rule.nameFilter, std::move(rule));
+        //         logger::info("Parsed Spell rule for '{}' as name from '{}'", identifier, configFileName);
+        //     }
+        //     logger::warn("Parsed Spell rule for '{}' but resolved form is nullptr", identifier);
+        // }
         // TODO see if there are any spells that have no full name+
         // SpellDataPersistence::spellRules.push_back(std::move(rule));
         // logger::info("Parsed Spell rule for '{}' [{:X}] from '{}'", identifier, rule.resolvedForm->GetFormID(),
@@ -353,7 +367,7 @@ ConfigLoader::ConfigLoader() { RegisterParsers(); }
 
 void ConfigLoader::RegisterParsers() {
     // Associate the "Effect" keyword (lowercase) with the ParseEffectRule function
-    keywordParsers["effect"] = Parser::ParseEffectRule;
+    // keywordParsers["effect"] = Parser::ParseEffectRule;
     keywordParsers["spell"] = Parser::ParseSpellRule;  // Alias for "effect" if needed
 
     // **Extensibility Point:** Add more rules easily

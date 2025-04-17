@@ -7,7 +7,8 @@
 #include <functional>
 
 #include "StringUtilities.h"
-#include "SpellDataPersistence.h"
+#include "ConfigRules.h"
+// #include "SpellDataPersistence.h"
 
 namespace Parser {
     /**

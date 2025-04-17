@@ -102,6 +102,10 @@ public:
         }
     }
 
+    // auto find(const KeyType& key) const {
+    //     return map.find(key);
+    // }
+
     // Get map
     const std::unordered_map<KeyType, ValueType>& GetMap() const { return map; }
 

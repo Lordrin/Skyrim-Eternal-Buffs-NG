@@ -48,4 +48,13 @@ namespace Utilities {
      */
     std::string ToLower(const std::string& str);
 
+
+    /**
+     * @brief Joins a vector of strings into a single string with a specified delimiter.
+     * @param strings The vector of strings to join.
+     * @param delimiter The delimiter to use between strings.
+     * @return A single string with the joined values.
+     */
+    std::string Join(const std::vector<std::string>& strings, const std::string& delimiter = ", ");
+
 }

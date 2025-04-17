@@ -163,25 +163,25 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         } else {
             SKSE::log::warn("ApplyConfigRulesToSpell: MagicItem is not a SpellItem.");
         }
-        auto spellRuleIt = SpellDataPersistence::spellRules.find(activeEffect->spell->GetFullName());
+        // auto spellRuleIt = SpellDataPersistence::spellRules.find(activeEffect->spell->GetFullName());
 
-        // If the spell is in the SpellDataPersistence::spellRules - Apply rules
-        if (spellRuleIt != SpellDataPersistence::spellRules.end()) {
-            const auto& spellConfig = spellRuleIt->second;
+        // // If the spell is in the SpellDataPersistence::spellRules - Apply rules
+        // if (spellRuleIt != SpellDataPersistence::spellRules.end()) {
+        //     const auto& spellConfig = spellRuleIt->second;
 
-            if (!spellConfig.isPermanentEnabled) {
-                SKSE::log::info("Found spell '{}' in config. Dispelling effect.", activeEffect->spell->GetFullName());
-                auto allSpells = SpellDataPersistence::GetAllSavedSpells();
-                if (allSpells.find(linkedSpellFormId) != allSpells.end()) {
-                    activeEffect->Dispel(false); 
-                    SpellDataPersistence::RemoveSpellFromSave(linkedSpellFormId);
-                }
-                continue;
-            }
+        //     if (!spellConfig.isPermanentEnabled) {
+        //         SKSE::log::info("Found spell '{}' in config. Dispelling effect.", activeEffect->spell->GetFullName());
+        //         auto allSpells = SpellDataPersistence::GetAllSavedSpells();
+        //         if (allSpells.find(linkedSpellFormId) != allSpells.end()) {
+        //             activeEffect->Dispel(false); 
+        //             SpellDataPersistence::RemoveSpellFromSave(linkedSpellFormId);
+        //         }
+        //         continue;
+        //     }
 
-            // TODO add all rules here
-            // default for uint32_t = 3435973836
-        }
+        //     // TODO add all rules here
+        //     // default for uint32_t = 3435973836
+        // }
         // If the effect is linked to a saved spell - Reset duration
         if (AllSavedSpells.find(linkedSpellFormId) != AllSavedSpells.end()) {
             SKSE::log::info("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);

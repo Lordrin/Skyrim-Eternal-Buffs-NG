@@ -1,94 +1,18 @@
-#pragma once // Use #pragma once for modern header guards
+#pragma once  // Use #pragma once for modern header guards
 
+#include <algorithm>
 #include <map>
 #include <mutex>
-#include <vector>
-#include <algorithm>
 #include <unordered_set>
+#include <vector>
 
-#include "SpellLogging.h"
+#include "FileParsing.h"
 #include "OrderedMap.h"
+#include "SpellLogging.h"
+#include "StringUtilities.h"
+#include "ConfigRules.h"
 
 using SpellEffectsMap = std::map<RE::FormID, std::vector<RE::FormID>>;
-
-// Pointers here so it can be changed later
-using RuleVariant = std::variant<std::string*, RE::TESForm*, bool*, uint32_t*>;
-
-// Shared Base Structure
-struct BaseRule {
-    std::string sourceFile;
-    // std::string rawResolvedForm;
-    RE::TESForm* resolvedForm = nullptr; // Optional for resolved rules
-    std::string nameFilter;
-    // std::string rawIsPermanentEnabled;
-    bool isPermanentEnabled = true; // Optional for resolved rules
-    std::string keywordFilter;
-
-    // // Map of field names to references (for raw rules)
-    // OrderedMap<std::string, std::string&> GetFields() {
-    //     return {
-    //         { "sourceFile", sourceFile },
-    //         { "resolvedForm", rawResolvedForm },
-    //         { "nameFilter", nameFilter },
-    //         { "isPermanentEnabled", rawIsPermanentEnabled },
-    //         { "keywordFilter", keywordFilter }
-    //     };
-    // }
-    // Map of field names to references (for raw rules)
-    OrderedMap<std::string, RuleVariant> GetFields() {
-        return {
-            { "sourceFile", &sourceFile },
-            { "resolvedForm", resolvedForm },
-            { "nameFilter", &nameFilter },
-            { "isPermanentEnabled", &isPermanentEnabled },
-            { "keywordFilter", &keywordFilter }
-        };
-    }
-
-    OrderedMap<std::string, std::function<bool(const std::string&)>> configSettings = {
-        { "sourceFile", [this](const std::string& value) { sourceFile = Utilities::TrimString(value); return !value.empty(); } },
-        { "resolvedForm", [](const std::string& value) { return !value.empty(); } },
-        { "nameFilter", [](const std::string& value) { return !value.empty(); } },
-        { "isPermanentEnabled", [](const std::string& value) { return value == "true" || value == "false"; } },
-        { "keywordFilter", [](const std::string& value) { return !value.empty(); } }
-    };
-};
-
-// EffectRule Structure
-struct EffectRule : BaseRule {
-    uint32_t durationFilter;
-    uint32_t minDurationFilter;
-    uint32_t magnitudeFilter;
-
-    // Map of field names to references (for raw rules)
-    OrderedMap<std::string, RuleVariant> GetFields() {
-        auto baseFields = BaseRule::GetFields();
-        baseFields.Concatenate({
-            { "durationFilter", &durationFilter },
-            { "minDurationFilter", &minDurationFilter },
-            { "magnitudeFilter", &magnitudeFilter }
-        });
-        return baseFields;
-    }
-};
-
-// SpellRule Structure
-struct SpellRule : BaseRule {
-    uint32_t durationFilter;
-    uint32_t minDurationFilter;
-    uint32_t magnitudeFilter;
-
-    // Map of field names to references (for raw rules)
-    OrderedMap<std::string, RuleVariant> GetFields() {
-        auto baseFields = BaseRule::GetFields();
-        baseFields.Concatenate({
-            { "durationFilter", &durationFilter },
-            { "minDurationFilter", &minDurationFilter },
-            { "magnitudeFilter", &magnitudeFilter }
-        });
-        return baseFields;
-    }
-};
 
 namespace SpellDataPersistence {
     // Stores a map where:
@@ -101,24 +25,14 @@ namespace SpellDataPersistence {
     static std::mutex g_dataMutex;
 
     // --- Constants for Serialization ---
-    constexpr uint32_t  kDataKey = 'LRDN'; // plugin's unique ID
+    constexpr uint32_t kDataKey = 'LRDN';  // plugin's unique ID
     constexpr uint32_t kDataVersion = 1;
 
-    extern std::vector<EffectRule> effectRules;
-    extern std::unordered_map<std::string, SpellRule> spellRules;
-
-    // Logs the attributes of BaseRule
-    void LogBaseRule(const BaseRule& rule);
-
-    // Logs the attributes of EffectRule
-    void LogEffectRule(const EffectRule& rule);
-
-    // Logs the attributes of SpellRule
-    void LogSpellRule(const SpellRule& rule);
+    // extern std::vector<EffectRule> effectRules;
+    // extern std::unordered_map<std::string, SpellRule> spellRules;
 
     // Logs the attributes of SpellEffectsMap
     void LogSpellSFromMap(const SpellEffectsMap& spellEffectsMap);
-
 
     /**
      * @brief Caches the given spell and its associated magic effect FormIDs
@@ -153,5 +67,4 @@ namespace SpellDataPersistence {
      */
     // void PopulateReversedSpellData();
 
-} // namespace SpellDataPersistence
-
+}  // namespace SpellDataPersistence

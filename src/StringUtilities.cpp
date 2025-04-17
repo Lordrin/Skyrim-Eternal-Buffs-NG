@@ -94,4 +94,15 @@ namespace Utilities {
         return lower_str;
     }
 
+    std::string Join(const std::vector<std::string>& strings, const std::string& delimiter) { 
+        std::ostringstream oss;
+        for (size_t i = 0; i < strings.size(); ++i) {
+            if (i != 0) {
+                oss << delimiter;
+            }
+            oss << strings[i];
+        }
+        return oss.str();
+     }
+
 }  // namespace Utilities
