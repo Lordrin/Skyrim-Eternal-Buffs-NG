@@ -50,6 +50,8 @@ endif()
 
 # Otherwise, you can set OUTPUT_FOLDER to any place you'd like :)
 # set(OUTPUT_FOLDER "E:/Program Files/Mod Organizer/mods/Blink Teleport")
+
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(OUTPUT_FOLDER "F:/MO2/mods/mods/testing dll - lorica")
 
 find_package(spdlog CONFIG REQUIRED)
