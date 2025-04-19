@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "FileParsing.h"
+#include "ConfigLoader.h"
 #include "OrderedMap.h"
 #include "SpellLogging.h"
 #include "StringUtilities.h"

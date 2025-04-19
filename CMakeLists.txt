@@ -83,7 +83,7 @@ target_sources(
         "include/SpellDataPersistence.h" "src/SpellDataPersistence.cpp"
         "include/SpellLogging.h" "src/SpellLogging.cpp"
         "include/SpellApplication.h" "src/SpellApplication.cpp"
-        "include/FileParsing.h" "src/FileParsing.cpp"
+        "include/ConfigLoader.h" "src/ConfigLoader.cpp"
         "include/StringUtilities.h" "src/StringUtilities.cpp"
         "include/ConfigRules.h" "src/ConfigRules.cpp"
 )

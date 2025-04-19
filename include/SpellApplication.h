@@ -2,7 +2,7 @@
 
 #include <unordered_set>
 
-#include "FileParsing.h"
+#include "ConfigLoader.h"
 #include "SpellDataPersistence.h"
 
 // Simple structure or use std::pair/tuple to pass data to the task

@@ -38,6 +38,28 @@ public:
         map[key] = value;  // Insert or update the value in the unordered_map
     }
 
+    ValueType& operator[](const KeyType& key) {
+        // If the key does not exist, insert a default value
+        if (map.find(key) == map.end()) {
+            order.push_back(key);  // Maintain insertion order
+            map[key] = StoredValueType{};  // Insert default value
+        }
+        return map[key];
+    }
+    
+    const ValueType& operator[](const KeyType& key) const {
+        auto it = map.find(key);
+        if (it != map.end()) {
+            return it->second;
+        } else {
+            throw std::runtime_error("Key not found");
+        }
+    }
+
+    auto find(const KeyType& key) const {
+        return map.find(key);
+    }
+
     // void Concatenate(const OrderedMap& other) {
     //     for (const auto& item : other.map) {
     //         Insert(item.first, item.second);  // Use the existing Insert method to maintain order

@@ -3,7 +3,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "Config.h"
-#include "FileParsing.h"
+#include "ConfigLoader.h"
 #include "SpellApplication.h"
 #include "SpellDataPersistence.h"
 #include "SpellCastEventHandler.h"
@@ -39,15 +39,14 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
-            SKSE::log::info("PostLoadGame event received, starting SpellCastDetector...");
+            SKSE::log::info("PostLoadGame event received, starting Applying Permanent Spells...");
             SpellCastEventHandler::Register();
             SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
             ApplyAllSavedPermanentSpellsToPlayer();
         }
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             SKSE::log::info("DataLoaded event received, starting SpellCastDetector...");
-            ConfigLoader loader;
-            loader.LoadConfigFile("Data/SKSE/Plugins/LoricaNG.ini");
+            ConfigLoader().LoadConfigFile("Data/SKSE/Plugins/LoricaNG.ini");
         }
     });
 
