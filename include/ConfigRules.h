@@ -34,6 +34,7 @@ struct SpellRule : BaseRule {
 };
 
 extern std::unordered_map<std::string, SpellRule> spellRules;
+std::unordered_map<std::string, SpellRule>& GetSpellRules();
 
 namespace Parser {
     /**

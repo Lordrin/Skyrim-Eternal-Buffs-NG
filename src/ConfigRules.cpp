@@ -1,5 +1,11 @@
 #include "ConfigRules.h"
 
+std::unordered_map<std::string, SpellRule> spellRules;
+
+std::unordered_map<std::string, SpellRule>& GetSpellRules() {
+    return spellRules;
+}
+
 namespace Parser {
 
     RE::TESForm* ResolveIdentifier(const std::string& identifier, const std::string& configFileName) {
@@ -119,6 +125,7 @@ namespace Parser {
 
         SpellRule spellRule;
         ParseSplitLine(orderedParts, spellRule.GetParsers().GetOrder(), spellRule.GetParsers().GetMap());
+
 
         spellRule.Log();
         return spellRule;

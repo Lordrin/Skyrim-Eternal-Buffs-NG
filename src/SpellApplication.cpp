@@ -10,14 +10,20 @@ void ApplyConfigRulesToSpell(RE::SpellItem* spell) {
         return;
     }
 
-    // Check if the spell is a permanent ability
-    if (spell->GetFormID() == MyPermanentAbilitySpellFormID) {
-        SKSE::log::info("ApplyConfigRulesToSpell: Permanent ability spell detected, setting duration to {}",
-                        permanentSpellDuration);
-        // spell->SetDuration(permanentSpellDuration);
-    } else {
-        SKSE::log::info("ApplyConfigRulesToSpell: Non-permanent ability spell detected, no changes made.");
-    }
+    auto spellRule = GetSpellRules().find(spell->GetFullName());
+
+
+
+    // // Check if the spell is a permanent ability
+    // if (spell->GetFormID() == MyPermanentAbilitySpellFormID) {
+    //     SKSE::log::info("ApplyConfigRulesToSpell: Permanent ability spell detected, setting duration to {}",
+    //                     permanentSpellDuration);
+    //     // spell->SetDuration(permanentSpellDuration);
+    // } else {
+    //     SKSE::log::info("ApplyConfigRulesToSpell: Non-permanent ability spell detected, no changes made.");
+    // }
+
+
 }
 
 bool RemoveSpecificActiveEffects(const std::vector<RE::FormID>& activeEffectIds) {
@@ -143,6 +149,7 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
 
     // SpellDataPersistence::spellRules
 
+    std::unordered_set<RE::FormID> SpellsFAppliedRulesToFormID;
     // Iterate over the active effects and process them
     for (RE::ActiveEffect* activeEffect : *activeEffects) {
         if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject()) {
@@ -158,8 +165,10 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         }
 
         RE::FormID linkedSpellFormId = activeEffect->spell->GetFormID();
-        if (auto* spellItem = activeEffect->spell->As<RE::SpellItem>()) {
+        RE::SpellItem* spellItem = activeEffect->spell->As<RE::SpellItem>();
+        if (spellItem && SpellsFAppliedRulesToFormID.find(linkedSpellFormId) == SpellsFAppliedRulesToFormID.end()) {
             ApplyConfigRulesToSpell(spellItem);  // Apply config rules to the spell
+            SpellsFAppliedRulesToFormID.insert(linkedSpellFormId);  // Add to the set of applied rules
         } else {
             SKSE::log::warn("ApplyConfigRulesToSpell: MagicItem is not a SpellItem.");
         }
