@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.21)
 
 # [BEGIN set_project_name]
 # Set your project name. This will be the name of your SKSE .dll file.
-project(LoricaNG VERSION 1.1.0 LANGUAGES CXX)
+project(InfinityBuffsNG VERSION 1.1.0 LANGUAGES CXX)
 
 # [END set_project_name]
 
@@ -50,7 +50,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 # endif()
 
 # Otherwise, you can set OUTPUT_FOLDER to any place you'd like :)
-set(OUTPUT_FOLDER "F:/MO2/mods/mods/testing dll - lorica")
+set(OUTPUT_FOLDER "F:/MO2/mods/mods/InfinityBuffsNG")
 
 find_package(spdlog CONFIG REQUIRED)
 
@@ -90,9 +90,6 @@ target_precompile_headers(
 	PRIVATE
 		include/PCH.h
 )
-
-
-
 
 # When your SKSE .dll is compiled, this will automatically copy the .dll into your mods folder.
 # Only works if you configure DEPLOY_ROOT above (or set the SKYRIM_MODS_FOLDER environment variable)

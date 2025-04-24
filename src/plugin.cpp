@@ -36,7 +36,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             logger::debug("DataLoaded event received, starting SpellCastDetector...");
-            ConfigLoader().LoadConfigFile("Data/SKSE/Plugins/LoricaNG.ini");
+            ConfigLoader().LoadConfigFile("Data/SKSE/Plugins/InfinityBuffsNG.ini");
             Global::InitializeShoutSpellMap();
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
@@ -53,7 +53,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     });
 
     SpellDataPersistence::RegisterSerializationCallbacks();
-    // TODO change this name
-    logger::info("{} initialization complete.", "Lorical's SpellCastDetector");
+
+    logger::info("{} initialization complete.", "Infinity Buffs");
     return true;
 }
