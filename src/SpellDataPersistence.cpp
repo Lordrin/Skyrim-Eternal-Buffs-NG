@@ -18,7 +18,7 @@ namespace SpellDataPersistence {
 
         // Check if we already have data for this spell (optional, prevents re-processing)
         if (g_savedSpellData.contains(spellID)) {
-            SKSE::log::debug("Spell {:#010x} already cached.", spellID);
+            logger::debug("Spell {:#010x} already cached.", spellID);
             return;
         }
 
@@ -32,7 +32,7 @@ namespace SpellDataPersistence {
 
         // Store it in the map
         g_savedSpellData[spellID] = std::move(effectIDs);  // Use move for efficiency
-        SKSE::log::info("Cached spell {:#010x} ('{}') with {} effects for saving.", spellID, spell->GetName(),
+        logger::info("Cached spell {:#010x} ('{}') with {} effects for saving.", spellID, spell->GetName(),
                         g_savedSpellData[spellID].size());
     }
 
@@ -60,56 +60,56 @@ namespace SpellDataPersistence {
 
     // Called when the game saves
     void SaveCallback(SKSE::SerializationInterface* skse) {
-        SKSE::log::info("SpellDataPersistence: SaveCallback triggered.");
+        logger::info("SpellDataPersistence: SaveCallback triggered.");
 
         std::lock_guard lock(g_dataMutex);  // Lock for reading the map
 
         if (!skse->OpenRecord(kDataKey, kDataVersion)) {
-            SKSE::log::error("SpellDataPersistence: Failed to open record for saving.");
+            logger::error("SpellDataPersistence: Failed to open record for saving.");
             return;
         }
 
         // 1. Write the number of spells we are saving
         const size_t numSpells = g_savedSpellData.size();
         if (!skse->WriteRecordData(&numSpells, sizeof(numSpells))) {
-            SKSE::log::error("SpellDataPersistence: Failed to write spell count.");
+            logger::error("SpellDataPersistence: Failed to write spell count.");
             return;
         }
-        SKSE::log::info("SpellDataPersistence: Saving {} spells.", numSpells);
+        logger::info("SpellDataPersistence: Saving {} spells.", numSpells);
 
         // 2. Iterate and write each spell and its effects
         for (const auto& [spellID, effectIDs] : g_savedSpellData) {
             // Write Spell FormID
             if (!skse->WriteRecordData(&spellID, sizeof(spellID))) {
-                SKSE::log::error("SpellDataPersistence: Failed to write spell ID {:#010x}.", spellID);
+                logger::error("SpellDataPersistence: Failed to write spell ID {:#010x}.", spellID);
                 continue;  // Skip this spell if write fails
             }
 
-            SKSE::log::info("SpellDataPersistence: Saving spell {:#010x}.", spellID);
+            logger::info("SpellDataPersistence: Saving spell {:#010x}.", spellID);
 
             // Write number of effects for this spell
             const size_t numEffects = effectIDs.size();
             if (!skse->WriteRecordData(&numEffects, sizeof(numEffects))) {
-                SKSE::log::error("SpellDataPersistence: Failed to write effect count for spell {:#010x}.", spellID);
+                logger::error("SpellDataPersistence: Failed to write effect count for spell {:#010x}.", spellID);
                 continue;  // Skip this spell
             }
 
             // Write each effect FormID
             for (const auto& effectID : effectIDs) {
                 if (!skse->WriteRecordData(&effectID, sizeof(effectID))) {
-                    SKSE::log::error("SpellDataPersistence: Failed to write effect ID {:#010x} for spell {:#010x}.",
+                    logger::error("SpellDataPersistence: Failed to write effect ID {:#010x} for spell {:#010x}.",
                                      effectID, spellID);
                     // Maybe stop saving this spell's effects? Or just log and continue? Let's continue.
                 }
             }
         }
         LogSpellSFromMap(g_savedSpellData);
-        SKSE::log::info("SpellDataPersistence: Finished saving spell data.");
+        logger::info("SpellDataPersistence: Finished saving spell data.");
     }
 
     // Called when the game loads a save (before RevertCallback)
     void LoadCallback(SKSE::SerializationInterface* skse) {
-        SKSE::log::info("SpellDataPersistence: LoadCallback triggered.");
+        logger::info("SpellDataPersistence: LoadCallback triggered.");
 
         uint32_t type;
         uint32_t version;
@@ -124,10 +124,10 @@ namespace SpellDataPersistence {
         // Look for our record type
         while (skse->GetNextRecordInfo(type, version, length)) {
             if (type == kDataKey) {
-                SKSE::log::info("SpellDataPersistence: Found our data record (Version {}).", version);
+                logger::info("SpellDataPersistence: Found our data record (Version {}).", version);
 
                 if (version != kDataVersion) {
-                    SKSE::log::error(
+                    logger::error(
                         "SpellDataPersistence: Found data with incompatible version {}. Expected {}. Cannot load.",
                         version, kDataVersion);
                     // Optionally, add code here to handle loading older versions if needed later.
@@ -140,11 +140,11 @@ namespace SpellDataPersistence {
                 // 1. Read the number of spells
                 size_t numSpells = 0;
                 if (!skse->ReadRecordData(&numSpells, sizeof(numSpells))) {
-                    SKSE::log::error("SpellDataPersistence: Failed to read spell count.");
+                    logger::error("SpellDataPersistence: Failed to read spell count.");
                     g_savedSpellData.clear();  // Ensure map is empty on error
                     return;                    // Stop loading
                 }
-                SKSE::log::info("SpellDataPersistence: Loading {} spells.", numSpells);
+                logger::info("SpellDataPersistence: Loading {} spells.", numSpells);
 
                 // 2. Iterate and read each spell and its effects
                 for (size_t i = 0; i < numSpells; ++i) {
@@ -155,16 +155,16 @@ namespace SpellDataPersistence {
 
                     // Read Spell FormID
                     if (!skse->ReadRecordData(&baseSpellId, sizeof(baseSpellId))) {
-                        SKSE::log::error("SpellDataPersistence: Failed to read spell ID for spell #{}.", i + 1);
+                        logger::error("SpellDataPersistence: Failed to read spell ID for spell #{}.", i + 1);
                         g_savedSpellData.clear();  // Abort loading
                         return;
                     }
 
-                    SKSE::log::info("SpellDataPersistence: Loading spell {:#010x}.", baseSpellId);
+                    logger::info("SpellDataPersistence: Loading spell {:#010x}.", baseSpellId);
 
                     // Read number of effects
                     if (!skse->ReadRecordData(&numEffects, sizeof(numEffects))) {
-                        SKSE::log::error("SpellDataPersistence: Failed to read effect count for spell {:#010x}.",
+                        logger::error("SpellDataPersistence: Failed to read effect count for spell {:#010x}.",
                                          baseSpellId);
                         g_savedSpellData.clear();  // Abort loading
                         return;
@@ -176,7 +176,7 @@ namespace SpellDataPersistence {
                     for (size_t j = 0; j < numEffects; ++j) {
                         RE::FormID currentEffectID = 0;
                         if (!skse->ReadRecordData(&currentEffectID, sizeof(currentEffectID))) {
-                            SKSE::log::error("SpellDataPersistence: Failed to read effect ID #{} for spell {:#010x}.",
+                            logger::error("SpellDataPersistence: Failed to read effect ID #{} for spell {:#010x}.",
                                              j + 1, currentEffectID);
                             g_savedSpellData.clear();  // Abort loading
                             return;
@@ -188,23 +188,23 @@ namespace SpellDataPersistence {
                     g_savedSpellData[baseSpellId] = std::move(currentEffectIDs);
                 }
                 LogSpellSFromMap(g_savedSpellData);
-                SKSE::log::info("SpellDataPersistence: Finished loading {} spells.", g_savedSpellData.size());
+                logger::info("SpellDataPersistence: Finished loading {} spells.", g_savedSpellData.size());
                 return;
             } else {
                 // This record is not ours, skip its data block
-                SKSE::log::debug("SpellDataPersistence: Skipping unknown record type {:#010x}", type);
+                logger::debug("SpellDataPersistence: Skipping unknown record type {:#010x}", type);
                 if (!skse->ReadRecordData(nullptr, length)) {  // Read and discard
-                    SKSE::log::error("SpellDataPersistence: Failed to skip unknown record data.");
+                    logger::error("SpellDataPersistence: Failed to skip unknown record data.");
                     // This might indicate save corruption, but we can try to continue.
                 }
             }
         }
-        SKSE::log::info("SpellDataPersistence: No data record found in this save.");
+        logger::info("SpellDataPersistence: No data record found in this save.");
     }
 
     // Called when the game reverts to a previous save (e.g., Load -> Load older)
     void RevertCallback(SKSE::SerializationInterface* skse) {
-        SKSE::log::info("SpellDataPersistence: RevertCallback triggered. Clearing cached spell data.");
+        logger::info("SpellDataPersistence: RevertCallback triggered. Clearing cached spell data.");
         std::lock_guard lock(g_dataMutex);
         g_savedSpellData.clear();
     }
@@ -214,7 +214,7 @@ namespace SpellDataPersistence {
     bool RegisterSerializationCallbacks() {
         auto* skse = SKSE::GetSerializationInterface();
         if (!skse) {
-            SKSE::log::critical("SpellDataPersistence: Failed to get SerializationInterface.");
+            logger::critical("SpellDataPersistence: Failed to get SerializationInterface.");
             return false;
         }
 
@@ -224,7 +224,7 @@ namespace SpellDataPersistence {
         skse->SetLoadCallback(LoadCallback);
         skse->SetRevertCallback(RevertCallback);
 
-        SKSE::log::info("SpellDataPersistence: Serialization callbacks registered with key {:#010x}.", kDataKey);
+        logger::info("SpellDataPersistence: Serialization callbacks registered with key {:#010x}.", kDataKey);
         return true;
     }
 
@@ -251,12 +251,12 @@ namespace SpellDataPersistence {
 
 void SpellDataPersistence::LogSpellSFromMap(const SpellEffectsMap& spellEffectsMap) {
     if (spellEffectsMap.empty()) {
-        SKSE::log::info(" SpellEffectsMap map is currently empty. No data loaded or cached.");
-        SKSE::log::info("--- Finished Logging Spell Data ---");
+        logger::info(" SpellEffectsMap map is currently empty. No data loaded or cached.");
+        logger::info("--- Finished Logging Spell Data ---");
         return;
     }
 
-    SKSE::log::info("  Found data for {} spells:", spellEffectsMap.size());
+    logger::info("  Found data for {} spells:", spellEffectsMap.size());
 
     int spellCount = 0;
     for (const auto& [spellID, effectIDs] : spellEffectsMap) {
@@ -265,21 +265,21 @@ void SpellDataPersistence::LogSpellSFromMap(const SpellEffectsMap& spellEffectsM
         RE::SpellItem* spellItem = spellForm ? spellForm->As<RE::SpellItem>() : nullptr;
         std::string spellName = spellItem && spellItem->GetName() ? spellItem->GetName() : "Unknown/Lookup Failed";
 
-        SKSE::log::info("  {}. Spell ID: {:#010x} ('{}')", spellCount, spellID, spellName);
+        logger::info("  {}. Spell ID: {:#010x} ('{}')", spellCount, spellID, spellName);
 
         if (effectIDs.empty()) {
-            SKSE::log::info("      - No associated effect IDs recorded.");
+            logger::info("      - No associated effect IDs recorded.");
         } else {
-            SKSE::log::info("      - Associated Effect IDs ({}):", effectIDs.size());
+            logger::info("      - Associated Effect IDs ({}):", effectIDs.size());
             int effectCount = 0;
             for (RE::FormID effectID : effectIDs) {
                 effectCount++;
                 RE::EffectSetting* mgef = RE::TESForm::LookupByID<RE::EffectSetting>(effectID);
                 std::string effectName = mgef && mgef->GetName() ? mgef->GetName() : "Unknown/Lookup Failed";
-                SKSE::log::info("        {}. Effect ID: {:#010x} ('{}')", effectCount, effectID, effectName);
+                logger::info("        {}. Effect ID: {:#010x} ('{}')", effectCount, effectID, effectName);
             }
         }
     }
 
-    SKSE::log::info("--- Finished Logging Spell Data ({} spells processed) ---", spellEffectsMap.size());
+    logger::info("--- Finished Logging Spell Data ({} spells processed) ---", spellEffectsMap.size());
 }

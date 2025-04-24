@@ -3,29 +3,16 @@
 ConfigLoader::ConfigLoader() { RegisterParsers(); }
 
 void ConfigLoader::RegisterParsers() {
-    keywordParsers["spell"] = Parser::ParseSpellRule;
-    // keywordParsers["enable"] = Parser::Parse;
+    sections["spells"]["spell"] = Parser::ParseSpellRule;
 
-    sections["spells"] = keywordParsers;
-    sections ["general"]["enable"] = Parser::ParseEnableRule;
+    sections["general"]["enable"] = Parser::ParseEnableRule;
     sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
     sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
-
-    // sections["General"] = ;  // General section can be used for common settings
-
-    // sections["General"] = Parser::HandleGeneralSection;
-    // sections["Spells"] = Parser::HandleSpellSection; // = keywordParsers;
-
-    // **Extensibility Point:** Add more rules easily
-    // keywordParsers["perk"] = Parser::ParsePerkRule;
-}
-
-void ConfigLoader::RegisterParser(const std::string& section, const std::string& keyword, ConfigLoader::KeywordParser parser) {
-    keywordParsers[keyword] = parser;
+    sections["general"]["logginglevel"] = Parser::ParseLoggingLevelRule;
 }
 
 void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
-    logger::info("--- Loading config file: {} ---", filePath.string());
+    logger::debug("--- Loading config file: {} ---", filePath.string());
     std::ifstream configFile(filePath);
     std::string line;
     std::string currentSection;  // You might use sections later if needed
@@ -88,5 +75,5 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
                          filePath.filename().string());
         }
     }
-    logger::info("--- Finished loading config file: {} ---", filePath.string());
+    logger::debug("--- Finished loading config file: {} ---", filePath.string());
 }

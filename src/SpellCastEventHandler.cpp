@@ -8,7 +8,7 @@ SpellCastEventHandler::SpellCastEventHandler() : reserveSPellId_(0) {
     RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
     uint32_t localFormID = 0x00801;
     RE::TESForm* localForm = dataHandler->LookupForm(localFormID, "BlinkTeleport.esp");
-    SKSE::log::info("Local form ID of blink lesser power: {}", localForm->formID);
+    logger::info("Local form ID of blink lesser power: {}", localForm->formID);
     reserveSPellId_ = localForm->formID;
 }
 
@@ -51,14 +51,14 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     bool isShout = false;
 
     if (!GBL::generalRule.shoutsEnabled || !GBL::generalRule.spellsEnabled) {
-        SKSE::log::info("Shouts are enabled in the general rule.");
+        logger::info("Shouts are enabled in the general rule.");
         auto it = GBL::GetShoutSpellMap().find(spellItem->GetFormID());
         if (it != GBL::GetShoutSpellMap().end()) {
             RE::TESShout* shoutFound = it->second;
             const char* shoutName = shoutFound->GetName();
-            SKSE::log::info("Spell is part of shout:");
-            SKSE::log::info("  Shout Name: {}", shoutName ? shoutName : "Unnamed Shout");
-            SKSE::log::info("  Shout FormID: {:#010x}", shoutFound->GetFormID());
+            logger::info("Spell is part of shout:");
+            logger::info("  Shout Name: {}", shoutName ? shoutName : "Unnamed Shout");
+            logger::info("  Shout FormID: {:#010x}", shoutFound->GetFormID());
 
             isShout = true;
 
@@ -69,7 +69,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
             auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
             
             // Log the time taken
-            SKSE::log::info("Time taken to check shouts: {} microseconds", duration);
+            logger::info("Time taken to check shouts: {} microseconds", duration);
             
             // return RE::BSEventNotifyControl::kContinue;
         }
@@ -79,11 +79,11 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     // playerActor->AsActorValueOwner()->SetActorValue(RE::ActorValue::kShoutRecoveryMult, 1.0f);
 
     if (!GBL::generalRule.shoutsEnabled && isShout) {
-        SKSE::log::info("Shouts are disabled in the general rule.");
+        logger::info("Shouts are disabled in the general rule.");
         return RE::BSEventNotifyControl::kContinue;
     }
     if (!GBL::generalRule.spellsEnabled && !isShout) {
-        SKSE::log::info("Spells are disabled in the general rule.");
+        logger::info("Spells are disabled in the general rule.");
         return RE::BSEventNotifyControl::kContinue;
     }
 
@@ -97,28 +97,28 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     //     for (auto& word : shout->variations) {
     //         if (word.spell) {
     //             RE::SpellItem* associatedSpell = word.spell;
-    //             SKSE::log::info("  Associated Spell Name: {}", associatedSpell->GetName());
-    //             SKSE::log::info("  Associated Spell FormID: {:#010x}", associatedSpell->GetFormID());
+    //             logger::info("  Associated Spell Name: {}", associatedSpell->GetName());
+    //             logger::info("  Associated Spell FormID: {:#010x}", associatedSpell->GetFormID());
 
     //             if (associatedSpell->GetFormID() == spellItem->GetFormID()) {
     //                 const char* shoutName = shout->GetName();
-    //                 SKSE::log::info("Spell is part of shout:");
-    //                 SKSE::log::info("  Shout Name: {}", shoutName ? shoutName : "Unnamed Shout");
-    //                 SKSE::log::info("  Shout FormID: {:#010x}", shout->GetFormID());
+    //                 logger::info("Spell is part of shout:");
+    //                 logger::info("  Shout Name: {}", shoutName ? shoutName : "Unnamed Shout");
+    //                 logger::info("  Shout FormID: {:#010x}", shout->GetFormID());
     //                 // End timing
     //                 auto end = std::chrono::high_resolution_clock::now();
     //                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     //                 // Log the time taken
-    //                 SKSE::log::info("Time taken to check shouts: {} microseconds", duration);
+    //                 logger::info("Time taken to check shouts: {} microseconds", duration);
     //                 return RE::BSEventNotifyControl::kContinue;
     //             }
     //         }
     //         // if (word && word->spell && word->spell->GetFormID() == spellItem->GetFormID()) {
     //         //     const char* shoutName = shout->GetName();
-    //         //     SKSE::log::info("Spell is part of shout:");
-    //         //     SKSE::log::info("  Shout Name: {}", shoutName ? shoutName : "Unnamed Shout");
-    //         //     SKSE::log::info("  Shout FormID: {:#010x}", shout->GetFormID());
+    //         //     logger::info("Spell is part of shout:");
+    //         //     logger::info("  Shout Name: {}", shoutName ? shoutName : "Unnamed Shout");
+    //         //     logger::info("  Shout FormID: {:#010x}", shout->GetFormID());
     //         //     return RE::BSEventNotifyControl::kContinue;
     //         // }
     //     }
@@ -129,12 +129,12 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
 
     // Log the time taken
-    SKSE::log::info("Time taken to check shouts: {} microseconds", duration);
+    logger::info("Time taken to check shouts: {} microseconds", duration);
 
     const char* spellName = spellItem->GetName();
-    SKSE::log::info("Player casting spell:");
-    SKSE::log::info("  Name: {}", spellName);
-    SKSE::log::info("  FormID: {:#010x}", spellItem->GetFormID());  // Log resolved FormID
+    logger::info("Player casting spell:");
+    logger::info("  Name: {}", spellName);
+    logger::info("  FormID: {:#010x}", spellItem->GetFormID());  // Log resolved FormID
 
     LogAllActiveEffectsOfSpell(spellItem);  // Log all active effects of the spell
     // --- Log MGEF Keywords ---
@@ -143,19 +143,19 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     // --- NEW: Check for Concentration Spell ---
     if (spellItem->data.castingType == RE::MagicSystem::CastingType::kConcentration) {
         if (!spellName || spellName[0] == '\0') spellName = "Unnamed Spell";
-        SKSE::log::info("Player casting concentration spell '{}' ({:#010x}). Skipping further checks.", spellName,
+        logger::info("Player casting concentration spell '{}' ({:#010x}). Skipping further checks.", spellName,
                         spellItem->GetFormID());
         return RE::BSEventNotifyControl::kContinue;  // Exit early for concentration spells
     }
 
     auto magicTarget = playerActor->GetMagicTarget();
     if (!magicTarget) {
-        SKSE::log::error("Failed to get MagicTarget from player actor.");
+        logger::error("Failed to get MagicTarget from player actor.");
         return RE::BSEventNotifyControl::kContinue;
     }
     auto activeEffects = magicTarget->GetActiveEffectList();
     if (!activeEffects) {
-        SKSE::log::error("Failed to get active effects list from MagicTarget.");
+        logger::error("Failed to get active effects list from MagicTarget.");
         return RE::BSEventNotifyControl::kContinue;
     }
 
@@ -166,7 +166,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
         }
 
         if (activeEffect->spell->GetFormID() == spellItem->GetFormID() && activeEffect->elapsedSeconds > 0) {
-            SKSE::log::info("Spell {} is already active. Will dispell next frame",
+            logger::info("Spell {} is already active. Will dispell next frame",
                             activeEffect->GetBaseObject()->GetName());
             alreadyOnPlayer = true;
             break;
@@ -176,7 +176,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     // spellItem->effects[0]->effectItem.duration = 0;  // Set duration to 0 for the first effect
     // auto magicItem = form->As<RE::MagicItem>();
     // if (!magicItem) {
-    //     SKSE::log::error("Failed to cast spell: MagicItem is null.");
+    //     logger::error("Failed to cast spell: MagicItem is null.");
     //     return RE::BSEventNotifyControl::kContinue;
     // }
     // magicItem.eff
@@ -194,7 +194,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
             ConvertToPermanentEffectOnPlayer(info);
         });
     } else {
-        SKSE::log::error("Failed to get TaskInterface, cannot schedule effect check.");
+        logger::error("Failed to get TaskInterface, cannot schedule effect check.");
     }
 
     return RE::BSEventNotifyControl::kContinue;

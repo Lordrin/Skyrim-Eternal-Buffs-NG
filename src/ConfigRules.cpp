@@ -13,7 +13,7 @@ namespace GBL {
     void InitializeShoutSpellMap() {
         auto dataHandler = RE::TESDataHandler::GetSingleton();
         if (!dataHandler) {
-            SKSE::log::error("Failed to get TESDataHandler.");
+            logger::error("Failed to get TESDataHandler.");
             return;
         }
 
@@ -28,8 +28,6 @@ namespace GBL {
                 }
             }
         }
-
-        SKSE::log::info("ShoutSpellMap initialized with {} entries.", shoutSpellMap.size());
     }
 
     GeneralRule generalRule;
@@ -74,7 +72,7 @@ namespace Parser {
                 std::string pluginName = Utilities::TrimString(formPluginPair[1]);
                 RE::TESForm* resolvedForm = dataHandler->LookupForm(localFormID, pluginName);
                 if (resolvedForm) {
-                    logger::info("Resolved FormID {:X} to '{}' (config: {})", localFormID, resolvedForm->GetName(),
+                    logger::debug("Resolved FormID {:X} to '{}' (config: {})", localFormID, resolvedForm->GetName(),
                                  configFileName);
                     return resolvedForm;
                 } else {
@@ -92,7 +90,7 @@ namespace Parser {
             RE::TESForm* resolvedForm =
                 RE::TESForm::LookupByID(std::stoul(Utilities::TrimString(identifier), nullptr, 16));
             if (resolvedForm) {
-                logger::info("Resolved EditorID '{}' to FormID {:X} (config: {})", identifier,
+                logger::debug("Resolved EditorID '{}' to FormID {:X} (config: {})", identifier,
                              resolvedForm->GetFormID(), configFileName);
                 return resolvedForm;
             }
@@ -150,14 +148,14 @@ namespace Parser {
         orderedParts.insert(orderedParts.end(), std::make_move_iterator(parts.begin()),
                             std::make_move_iterator(parts.end()));  // Move the rest of the parts
 
-        logger::info("valueString: {}", configLine);
-        logger::info("parts: {}", Utilities::Join(orderedParts, "|"));
+        logger::debug("valueString: {}", configLine);
+        logger::debug("parts: {}", Utilities::Join(orderedParts, "|"));
 
         SpellRule spellRule;
         ParseSplitLine(orderedParts, spellRule.GetParsers().GetOrder(), spellRule.GetParsers().GetMap());
 
         if (spellRule.resolvedForm) {
-            logger::info("Resolved form: {}", spellRule.resolvedForm->GetName());
+            logger::debug("Resolved form: {}", spellRule.resolvedForm->GetName());
             spellRule.nameFilter = spellRule.resolvedForm->GetName();  // Set the nameFilter to the resolved form's name
         } else {
             logger::warn("Failed to resolve form for '{}'", spellRule.nameFilter);
@@ -182,6 +180,23 @@ namespace Parser {
     }
     void ParseSpellsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
         GBL::generalRule.spellsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+    }
+
+    void ParseLoggingLevelRule(const std::string& value, const std::string& configFileName) {
+        auto loggingLevel = Utilities::ToLower(Utilities::TrimString(value));
+        if (loggingLevel == "debug") {
+            spdlog::set_level(spdlog::level::debug);
+        } else if (loggingLevel == "info") {
+            spdlog::set_level(spdlog::level::info);
+        } else if (loggingLevel == "warn") {
+            spdlog::set_level(spdlog::level::warn);
+        } else if (loggingLevel == "error") {
+            spdlog::set_level(spdlog::level::err);
+        } else {
+            logger::warn("Unknown logging level '{}' in config file '{}'. Defaulting to 'info'.", loggingLevel,
+                         configFileName);
+            spdlog::set_level(spdlog::level::info);
+        }
     }
 
     // GeneralRule ParseGeneralRule(const std::string& configLine) {
@@ -222,26 +237,13 @@ OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetPa
 }
 
 bool BaseRule::ShouldApplyRuleToForm(RE::TESForm* form) const {
-    // check for keywords
-    // {
-    //     return (resolvedForm == form || nameFilter == form->GetFullName() || keywordFilter.empty() ||
-    //             std::find_if(keywordFilter.begin(), keywordFilter.end(), [&](const std::string& keyword) {
-    //                 return form->HasKeyword(keyword.c_str());
-    //             }) != keywordFilter.end());
-    // }
     if (resolvedForm == nullptr) {
-        logger::info("ShouldApplyRuleToForm: resolvedForm is null. Checking by name");
+        logger::debug("ShouldApplyRuleToForm: resolvedForm is null. Checking by name");
         return nameFilter == form->GetName();
     } else {
         return (resolvedForm == form || form->GetFormID() == resolvedForm->GetFormID());
     }
 }
-// bool BaseRule::ShouldApplyRuleToForm(RE::TESForm* form) const {
-//     return (resolvedForm == form || nameFilter == form->GetName() || keywordFilter.empty() ||
-//             std::find_if(keywordFilter.begin(), keywordFilter.end(), [&](const std::string& keyword) {
-//                 return form->Key(keyword.c_str());
-//             }) != keywordFilter.end());
-// }
 
 void BaseRule::Log() const {
     logger::info(
@@ -307,14 +309,14 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
     }
 
     if (isPermanentEnabled) {
-        logger::info("ApplyRulesToSpell: Setting duration to permanent for effect: {:#010x} ({})",
+        logger::debug("ApplyRulesToSpell: Setting duration to permanent for effect: {:#010x} ({})",
                      activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
         activeEffect->duration = permanentSpellDuration;
     }
 
     // check if durationfilter is not set to default
     if (durationFilter != -1.0f) {
-        logger::info("ApplyRulesToSpell: Setting duration to {} for effect: {:#010x} ({})", durationFilter,
+        logger::debug("ApplyRulesToSpell: Setting duration to {} for effect: {:#010x} ({})", durationFilter,
                      activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
         activeEffect->duration = durationFilter;  // Set the duration to the filter value
     }

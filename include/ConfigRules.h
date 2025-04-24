@@ -82,4 +82,5 @@ namespace Parser {
     void ParseEnableRule(const std::string& value, const std::string& configFileName);
     void ParseShoutsEnabledRule(const std::string& value, const std::string& configFileName);
     void ParseSpellsEnabledRule(const std::string& value, const std::string& configFileName);
+    void ParseLoggingLevelRule(const std::string& value, const std::string& configFileName);
 }
