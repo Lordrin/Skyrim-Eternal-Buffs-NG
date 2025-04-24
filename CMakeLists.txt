@@ -33,6 +33,7 @@ if(DEFINED ENV{SKYRIM_FOLDER} AND IS_DIRECTORY "$ENV{SKYRIM_FOLDER}/Data")
     set(OUTPUT_FOLDER "$ENV{SKYRIM_FOLDER}/Data")
 endif()
 
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 # set(SKYRIM_MODS_FOLDER_LOCAL "F:/MO2/mods/mods")  # replace with your desired path
 
 # If you're using Mod Organizer 2 or Vortex, you might want this to go inside
@@ -49,9 +50,6 @@ endif()
 # endif()
 
 # Otherwise, you can set OUTPUT_FOLDER to any place you'd like :)
-# set(OUTPUT_FOLDER "E:/Program Files/Mod Organizer/mods/Blink Teleport")
-
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(OUTPUT_FOLDER "F:/MO2/mods/mods/testing dll - lorica")
 
 find_package(spdlog CONFIG REQUIRED)
@@ -71,14 +69,13 @@ target_include_directories(
 		${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE "Deps/simpleini")
+# target_include_directories(${PROJECT_NAME} PRIVATE "Deps/simpleini")
 
 target_sources(
 	"${PROJECT_NAME}"
 	PRIVATE
 		${CMAKE_CURRENT_BINARY_DIR}/cmake/Plugin.h
 		${CMAKE_CURRENT_BINARY_DIR}/cmake/version.rc
-        "include/Config.h" "src/Config.cpp" 
         "include/SpellCastEventHandler.h" "src/SpellCastEventHandler.cpp"
         "include/SpellDataPersistence.h" "src/SpellDataPersistence.cpp"
         "include/SpellLogging.h" "src/SpellLogging.cpp"
@@ -86,6 +83,7 @@ target_sources(
         "include/ConfigLoader.h" "src/ConfigLoader.cpp"
         "include/StringUtilities.h" "src/StringUtilities.cpp"
         "include/ConfigRules.h" "src/ConfigRules.cpp"
+        "include/ActiveEffectEventHandler.h" "src/ActiveEffectEventHandler.cpp"
 )
 
 target_precompile_headers(

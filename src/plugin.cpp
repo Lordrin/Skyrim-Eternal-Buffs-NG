@@ -1,12 +1,12 @@
 #include "Plugin.h"
 
+#include <ActiveEffectEventHandler.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include "Config.h"
 #include "ConfigLoader.h"
 #include "SpellApplication.h"
-#include "SpellDataPersistence.h"
 #include "SpellCastEventHandler.h"
+#include "SpellDataPersistence.h"
 
 // Template source: https://github.com/SkyrimDev/HelloWorld-using-CommonLibSSE-NG
 // See also: https://github.com/CharmedBaryon/CommonLibSSE-NG/wiki
@@ -36,10 +36,15 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     // SKSE::GetPapyrusInterface()->Register(BlinkTeleportConfig::MCM::Register);
 
     SKSE::log::info("{} initialization complete.", "Lorical's SpellCastDetector");
-    
+
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
+            if (!GBL::generalRule.enabled || (!GBL::generalRule.shoutsEnabled && !GBL::generalRule.spellsEnabled)) {
+                logger::info("PostLoadGame event received, but shouts and spells are disabled in the general rule.");
+                return;
+            }
             SKSE::log::info("PostLoadGame event received, starting Applying Permanent Spells...");
+            // ActiveEffectEventHandler::Register();
             SpellCastEventHandler::Register();
             SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
             ApplyAllSavedPermanentSpellsToPlayer();
@@ -47,6 +52,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             SKSE::log::info("DataLoaded event received, starting SpellCastDetector...");
             ConfigLoader().LoadConfigFile("Data/SKSE/Plugins/LoricaNG.ini");
+            GBL::InitializeShoutSpellMap();
         }
     });
 

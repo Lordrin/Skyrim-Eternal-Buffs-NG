@@ -9,7 +9,8 @@
 #include "StringUtilities.h"
 
 // Pointers here so it can be changed later
-using RuleVariant = std::variant<std::string*, RE::TESForm*, bool*, uint32_t*, std::vector<std::string>*>;
+using RuleVariant = std::variant<std::string*, RE::TESForm*, bool*, uint32_t*, std::vector<std::string>*, float*>;
+const float permanentSpellDuration = 86313600.0f; // 999 days
 
 struct BaseRule {
     std::string sourceFile;
@@ -20,21 +21,39 @@ struct BaseRule {
 
     OrderedMap<std::string, RuleVariant> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
+    bool ShouldApplyRuleToForm(RE::TESForm* form) const;
+
     void Log() const;
 };
 
 struct SpellRule : BaseRule {
-    uint32_t durationFilter;
-    uint32_t minDurationFilter;
-    uint32_t magnitudeFilter;
-
+    float durationFilter = -1.0f; // Default value for duration filter
+    uint32_t minDurationFilter = 0;
+    float magnitudeFilter = -1.0f; // Default value for magnitude filter
+    
     OrderedMap<std::string, RuleVariant> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
+    bool ShouldApplyRuleToSpell(RE::SpellItem* spellItem) const;
+
+    void ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) const;
     void Log() const;
 };
 
-extern std::unordered_map<std::string, SpellRule> spellRules;
-std::unordered_map<std::string, SpellRule>& GetSpellRules();
+struct GeneralRule {
+    bool enabled = true;
+    bool shoutsEnabled = true;
+    bool spellsEnabled = true;
+};
+
+namespace GBL {
+    extern std::unordered_map<std::string, SpellRule> spellRules;
+    std::unordered_map<std::string, SpellRule>& GetSpellRules();
+    extern GeneralRule generalRule;
+    extern std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
+    std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap();
+
+    void InitializeShoutSpellMap();
+}
 
 namespace Parser {
     /**
@@ -58,4 +77,9 @@ namespace Parser {
                         const std::unordered_map<std::string, std::function<void(const std::string&)>>& parserMap);
 
     SpellRule ParseSpellRule(const std::string& configLine, const std::string& configFileName);
+
+
+    void ParseEnableRule(const std::string& value, const std::string& configFileName);
+    void ParseShoutsEnabledRule(const std::string& value, const std::string& configFileName);
+    void ParseSpellsEnabledRule(const std::string& value, const std::string& configFileName);
 }

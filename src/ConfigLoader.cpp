@@ -1,16 +1,27 @@
 #include "ConfigLoader.h"
 
-#include <sstream>
-
-// --- Config Loader Class ---
-// --- LoricaNGConfigLoader Class Implementation ---
 ConfigLoader::ConfigLoader() { RegisterParsers(); }
 
 void ConfigLoader::RegisterParsers() {
     keywordParsers["spell"] = Parser::ParseSpellRule;
+    // keywordParsers["enable"] = Parser::Parse;
+
+    sections["spells"] = keywordParsers;
+    sections ["general"]["enable"] = Parser::ParseEnableRule;
+    sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
+    sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
+
+    // sections["General"] = ;  // General section can be used for common settings
+
+    // sections["General"] = Parser::HandleGeneralSection;
+    // sections["Spells"] = Parser::HandleSpellSection; // = keywordParsers;
 
     // **Extensibility Point:** Add more rules easily
     // keywordParsers["perk"] = Parser::ParsePerkRule;
+}
+
+void ConfigLoader::RegisterParser(const std::string& section, const std::string& keyword, ConfigLoader::KeywordParser parser) {
+    keywordParsers[keyword] = parser;
 }
 
 void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
@@ -31,7 +42,7 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
 
         // Basic section handling (optional, could be used for context)
         if (trimmedLine[0] == '[' && trimmedLine.back() == ']') {
-            currentSection = Utilities::TrimString(trimmedLine.substr(1, trimmedLine.length() - 2));
+            currentSection = Utilities::ToLower(Utilities::TrimString(trimmedLine.substr(1, trimmedLine.length() - 2)));
             logger::debug("Entering section: [{}]", currentSection);
             continue;
         }
@@ -53,9 +64,16 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
             continue;
         }
 
+        auto currentKeyWordParsers = sections.find(currentSection);
+        if(currentKeyWordParsers == sections.end()) {
+            logger::warn("Unknown section '{}' on line {} in {}. Skipping.", currentSection, lineNum,
+                         filePath.filename().string());
+            continue;
+        }
+
         // --- Find and call the registered parser for this keyword ---
-        auto it = keywordParsers.find(keyword);
-        if (it != keywordParsers.end()) {
+        auto it = currentKeyWordParsers->second.find(keyword);
+        if (it != currentKeyWordParsers->second.end()) {
             // Call the associated function (e.g., ParseEffectRule)
             try {
                 it->second(value, filePath.filename().string());  // Pass value string and filename

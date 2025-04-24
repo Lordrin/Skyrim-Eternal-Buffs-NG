@@ -5,6 +5,7 @@
 #include <string>
 #include <filesystem>
 #include <functional>
+#include <sstream>
 
 #include "StringUtilities.h"
 #include "ConfigRules.h"
@@ -21,6 +22,16 @@ public:
      */
     void RegisterParsers();
 
+
+    /**
+     * @brief Registers a parser for a specific section and keyword.
+     *
+     * @param section The section name in the configuration file.
+     * @param keyword The keyword to be parsed.
+     * @param parser The function that will handle the parsing.
+     */
+    void RegisterParser(const std::string& section, const std::string& keyword, KeywordParser parser);
+
     /**
      * @brief Loads a single configuration file.
      *
@@ -29,5 +40,6 @@ public:
     void LoadConfigFile(const std::filesystem::path& filePath);
 
 private:
-    std::map<std::string, KeywordParser> keywordParsers;
+    std::unordered_map<std::string, KeywordParser> keywordParsers;
+    std::unordered_map<std::string, std::unordered_map<std::string, KeywordParser>> sections;
 };

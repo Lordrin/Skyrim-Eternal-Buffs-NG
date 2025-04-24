@@ -9,9 +9,13 @@
 struct SpellCastInfo {
     RE::SpellItem& spellItem;
     RE::ActorHandle playerHandle;
+    bool alreadyOnPlayer;
 };
 
 bool RemovePermanentSpellFromActor(RE::SpellItem* spellItem, RE::Actor* actor);
+void DispellAllSavedSpellsFromActor(RE::Actor& actor);
+void DispellAllSavedSpellsFromPlayer();
 bool ApplyPermanentSpellToActor(RE::SpellItem* spellItem, RE::Actor* actor);
 void ApplyAllSavedPermanentSpellsToPlayer();
 void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo);
+void LogActiveEffectDetails(RE::ActiveEffect* activeEffect);

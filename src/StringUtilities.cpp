@@ -94,7 +94,7 @@ namespace Utilities {
         return lower_str;
     }
 
-    std::string Join(const std::vector<std::string>& strings, const std::string& delimiter) { 
+    std::string Join(const std::vector<std::string>& strings, const std::string& delimiter) {
         std::ostringstream oss;
         for (size_t i = 0; i < strings.size(); ++i) {
             if (i != 0) {
@@ -103,6 +103,18 @@ namespace Utilities {
             oss << strings[i];
         }
         return oss.str();
-     }
+    }
+
+    // Remove all whitespace from a string
+    std::string RemoveWhitespace(const std::string& str) {
+        std::string result;
+        result.reserve(str.size());  // Reserve space for efficiency
+        for (char c : str) {
+            if (!std::isspace(static_cast<unsigned char>(c))) {
+                result += c;
+            }
+        }
+        return result;
+    }
 
 }  // namespace Utilities

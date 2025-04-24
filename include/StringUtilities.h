@@ -57,4 +57,13 @@ namespace Utilities {
      */
     std::string Join(const std::vector<std::string>& strings, const std::string& delimiter = ", ");
 
+
+
+    /**
+     * @brief Removes all whitespace from a string.
+     * @param str The string to process.
+     * @return A new string with all whitespace removed.
+     */
+    std::string RemoveWhitespace(const std::string& str);
+
 }

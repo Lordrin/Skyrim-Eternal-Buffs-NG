@@ -1,9 +1,39 @@
 #include "ConfigRules.h"
 
-std::unordered_map<std::string, SpellRule> spellRules;
+namespace GBL {
+    // The key is the name of the spell
+    std::unordered_map<std::string, SpellRule> spellRules;
 
-std::unordered_map<std::string, SpellRule>& GetSpellRules() {
-    return spellRules;
+    std::unordered_map<std::string, SpellRule>& GetSpellRules() { return spellRules; }
+
+    std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
+
+    std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap() { return shoutSpellMap; }
+
+    void InitializeShoutSpellMap() {
+        auto dataHandler = RE::TESDataHandler::GetSingleton();
+        if (!dataHandler) {
+            SKSE::log::error("Failed to get TESDataHandler.");
+            return;
+        }
+
+        for (auto* shout : dataHandler->GetFormArray<RE::TESShout>()) {
+            if (!shout) {
+                continue;
+            }
+
+            for (const auto& word : shout->variations) {
+                if (word.spell) {
+                    shoutSpellMap[word.spell->GetFormID()] = shout;
+                }
+            }
+        }
+
+        SKSE::log::info("ShoutSpellMap initialized with {} entries.", shoutSpellMap.size());
+    }
+
+    GeneralRule generalRule;
+
 }
 
 namespace Parser {
@@ -117,7 +147,7 @@ namespace Parser {
         orderedParts.reserve(parts.size() + 2);  // Reserve space for configFileName and identifier
         orderedParts.push_back(configFileName);  // Add configFileName as the first part
         orderedParts.push_back(parts[0]);        // Add the identifier as the second part
-        orderedParts.insert(orderedParts.end(), std::make_move_iterator(parts.begin() + 1),
+        orderedParts.insert(orderedParts.end(), std::make_move_iterator(parts.begin()),
                             std::make_move_iterator(parts.end()));  // Move the rest of the parts
 
         logger::info("valueString: {}", configLine);
@@ -126,10 +156,47 @@ namespace Parser {
         SpellRule spellRule;
         ParseSplitLine(orderedParts, spellRule.GetParsers().GetOrder(), spellRule.GetParsers().GetMap());
 
+        if (spellRule.resolvedForm) {
+            logger::info("Resolved form: {}", spellRule.resolvedForm->GetName());
+            spellRule.nameFilter = spellRule.resolvedForm->GetName();  // Set the nameFilter to the resolved form's name
+        } else {
+            logger::warn("Failed to resolve form for '{}'", spellRule.nameFilter);
+        }
+
+        // RE::SpellItem* spellItem = spellRule.resolvedForm->As<RE::SpellItem>();
+        // if (!spellItem) {
+        //     logger::warn("Failed to cast resolved form to SpellItem for '{}'", spellRule.nameFilter);
+        //     return {};  // Return an empty SpellRule if the cast fails
+        // }
+        GBL::spellRules.insert({Utilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
 
         spellRule.Log();
         return spellRule;
     }
+
+    void ParseEnableRule(const std::string& value, const std::string& /*configFileName*/) {
+        GBL::generalRule.enabled = Utilities::ToLower(value) == "true" || value == "1";
+    }
+    void ParseShoutsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
+        GBL::generalRule.shoutsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+    }
+    void ParseSpellsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
+        GBL::generalRule.spellsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+    }
+
+    // GeneralRule ParseGeneralRule(const std::string& configLine) {
+    //     GeneralRule generalRule;
+    //     generalRule.GetParsers()
+    //     // std::vector<std::string> parts = Utilities::SplitString(configLine, '|');
+    //     // if (parts.size() >= 2) {
+    //     //     generalRule.enabled = parts[0] == "true";
+    //     //     generalRule.shoutsEnabled = parts[1] == "true";
+    //     //     if (parts.size() > 2) {
+    //     //         generalRule.spellsEnabled = parts[2] == "true";
+    //     //     }
+    //     // }
+    //     return generalRule;
+    // }
 
 }
 
@@ -146,12 +213,35 @@ OrderedMap<std::string, RuleVariant> BaseRule::GetFields() {
 OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetParsers() {
     return {
         {"sourceFile", [this](const std::string& value) { sourceFile = value; }},
-        {"resolvedForm", [this](const std::string& value) { resolvedForm = Parser::ResolveIdentifier(value, sourceFile); }},
+        {"resolvedForm",
+         [this](const std::string& value) { resolvedForm = Parser::ResolveIdentifier(value, sourceFile); }},
         {"nameFilter", [this](const std::string& value) { nameFilter = value; }},
         {"isPermanentEnabled",
          [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> isPermanentEnabled; }},
         {"keywordFilter", [this](const std::string& value) { keywordFilter = Utilities::SplitString(value, ','); }}};
 }
+
+bool BaseRule::ShouldApplyRuleToForm(RE::TESForm* form) const {
+    // check for keywords
+    // {
+    //     return (resolvedForm == form || nameFilter == form->GetFullName() || keywordFilter.empty() ||
+    //             std::find_if(keywordFilter.begin(), keywordFilter.end(), [&](const std::string& keyword) {
+    //                 return form->HasKeyword(keyword.c_str());
+    //             }) != keywordFilter.end());
+    // }
+    if (resolvedForm == nullptr) {
+        logger::info("ShouldApplyRuleToForm: resolvedForm is null. Checking by name");
+        return nameFilter == form->GetName();
+    } else {
+        return (resolvedForm == form || form->GetFormID() == resolvedForm->GetFormID());
+    }
+}
+// bool BaseRule::ShouldApplyRuleToForm(RE::TESForm* form) const {
+//     return (resolvedForm == form || nameFilter == form->GetName() || keywordFilter.empty() ||
+//             std::find_if(keywordFilter.begin(), keywordFilter.end(), [&](const std::string& keyword) {
+//                 return form->Key(keyword.c_str());
+//             }) != keywordFilter.end());
+// }
 
 void BaseRule::Log() const {
     logger::info(
@@ -175,6 +265,64 @@ OrderedMap<std::string, std::function<void(const std::string&)>> SpellRule::GetP
          {"minDurationFilter", [this](const std::string& value) { std::istringstream(value) >> minDurationFilter; }},
          {"magnitudeFilter", [this](const std::string& value) { std::istringstream(value) >> magnitudeFilter; }}});
     return baseParsers;
+}
+
+bool SpellRule::ShouldApplyRuleToSpell(RE::SpellItem* spellItem) const {
+    if (!spellItem) {
+        logger::warn("ShouldApplyRuleToSpell: SpellItem is null.");
+        return false;
+    }
+    if (spellItem->GetFormType() != RE::FormType::Spell) {
+        logger::warn("ShouldApplyRuleToSpell: SpellItem is not a spell.");
+        return false;
+    }
+    std::span<RE::BGSKeyword*> keywords = spellItem->GetKeywords();
+
+    // check if keyworkFilter is empty or if any of the keywords match
+    bool isRightSpell = BaseRule::ShouldApplyRuleToForm(spellItem);
+    return isRightSpell && (keywordFilter.empty() ||
+                            std::any_of(keywordFilter.begin(), keywordFilter.end(), [&](const std::string& keyword) {
+                                return std::any_of(keywords.begin(), keywords.end(), [&](RE::BGSKeyword* spellKeyword) {
+                                    return spellKeyword && spellKeyword->GetName() == keyword;
+                                });
+                            }));
+}
+
+void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) const {
+    if (!activeEffect) {
+        logger::warn("ApplyRulesToSpell: SpellItem is null.");
+        return;
+    }
+    // TODO: Do i want this check?
+    // if (spellItem->GetFormType() != RE::FormType::Spell) {
+    //     logger::warn("ApplyRulesToSpell: SpellItem is not a spell.");
+    //     return;
+    // }
+    // RE::BSTArray<RE::Effect*> effects = spellItem->effects;
+    std::span<RE::BGSKeyword*> spellKeywords = activeEffect->spell->GetKeywords();
+
+    // If the duration is less then the minDurationFilter - skip the effect
+    if (activeEffect->duration <= minDurationFilter) {
+        return;
+    }
+
+    if (isPermanentEnabled) {
+        logger::info("ApplyRulesToSpell: Setting duration to permanent for effect: {:#010x} ({})",
+                     activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
+        activeEffect->duration = permanentSpellDuration;
+    }
+
+    // check if durationfilter is not set to default
+    if (durationFilter != -1.0f) {
+        logger::info("ApplyRulesToSpell: Setting duration to {} for effect: {:#010x} ({})", durationFilter,
+                     activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
+        activeEffect->duration = durationFilter;  // Set the duration to the filter value
+    }
+
+    // check if minDurationFilter is not set to default
+    if (magnitudeFilter != -1.0f) {
+        activeEffect->magnitude = magnitudeFilter;  // Set the magnitude to the filter value
+    }
 }
 
 void SpellRule::Log() const {
