@@ -8,9 +8,7 @@
 #include "OrderedMap.h"
 #include "StringUtilities.h"
 
-// Pointers here so it can be changed later
 using RuleVariant = std::variant<std::string*, RE::TESForm*, bool*, uint32_t*, std::vector<std::string>*, float*>;
-const float permanentSpellDuration = 86313600.0f; // 999 days
 
 struct BaseRule {
     std::string sourceFile;
@@ -22,19 +20,17 @@ struct BaseRule {
     OrderedMap<std::string, RuleVariant> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
     bool ShouldApplyRuleToForm(RE::TESForm* form) const;
-
     void Log() const;
 };
 
 struct SpellRule : BaseRule {
-    float durationFilter = -1.0f; // Default value for duration filter
+    float durationFilter = -1.0f;
     uint32_t minDurationFilter = 0;
-    float magnitudeFilter = -1.0f; // Default value for magnitude filter
+    float magnitudeFilter = -1.0f;
     
     OrderedMap<std::string, RuleVariant> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
     bool ShouldApplyRuleToSpell(RE::SpellItem* spellItem) const;
-
     void ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) const;
     void Log() const;
 };
@@ -45,7 +41,8 @@ struct GeneralRule {
     bool spellsEnabled = true;
 };
 
-namespace GBL {
+namespace Global {
+    const float permanentSpellDuration = 86313600.0f; // 999 days
     extern std::unordered_map<std::string, SpellRule> spellRules;
     std::unordered_map<std::string, SpellRule>& GetSpellRules();
     extern GeneralRule generalRule;

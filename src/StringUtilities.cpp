@@ -31,26 +31,7 @@ namespace Utilities {
     }
 
     // --- SplitString Implementations ---
-
-    // Option 1: Using stringstream (often simpler to read)
-    std::vector<std::string> SplitString(const std::string& str, char delimiter, bool skipEmpty) {
-        std::vector<std::string> result;
-        std::stringstream ss(str);
-        std::string segment;
-
-        while (std::getline(ss, segment, delimiter)) {
-            if (!skipEmpty || !segment.empty()) {
-                result.push_back(segment);
-            }
-        }
-        // Handle case where the string ends with the delimiter (getline might miss the last empty segment)
-        if (!str.empty() && str.back() == delimiter && !skipEmpty) {
-            result.push_back("");
-        }
-        return result;
-    }
-
-    // Option 2: Using string_view (more efficient, C++17)
+    
     std::vector<std::string_view> SplitStringView(std::string_view sv, char delimiter, bool skipEmpty) {
         std::vector<std::string_view> result;
         std::string_view::size_type start = 0;
@@ -70,20 +51,16 @@ namespace Utilities {
         }
         return result;
     }
-
-    // If you need SplitString to return std::vector<std::string> but want efficiency of string_view splitting:
-    /*
-    std::vector<std::string> SplitString(const std::string& str, char delimiter, bool skipEmpty = true) {
+    std::vector<std::string> SplitString(const std::string& str, char delimiter, bool skipEmpty) {
         std::vector<std::string> result;
         std::string_view sv(str);
         auto views = SplitStringView(sv, delimiter, skipEmpty);
-        result.reserve(views.size()); // Optimize allocation
-        for(const auto& view : views) {
-            result.emplace_back(view); // Construct string from view
+        result.reserve(views.size());  // Optimize allocation
+        for (const auto& view : views) {
+            result.emplace_back(view);  // Construct string from view
         }
         return result;
     }
-    */
 
     // --- ToLower Implementation ---
 
@@ -117,4 +94,4 @@ namespace Utilities {
         return result;
     }
 
-}  // namespace Utilities
+}

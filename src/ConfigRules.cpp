@@ -1,6 +1,6 @@
 #include "ConfigRules.h"
 
-namespace GBL {
+namespace Global {
     // The key is the name of the spell
     std::unordered_map<std::string, SpellRule> spellRules;
 
@@ -73,7 +73,7 @@ namespace Parser {
                 RE::TESForm* resolvedForm = dataHandler->LookupForm(localFormID, pluginName);
                 if (resolvedForm) {
                     logger::debug("Resolved FormID {:X} to '{}' (config: {})", localFormID, resolvedForm->GetName(),
-                                 configFileName);
+                                  configFileName);
                     return resolvedForm;
                 } else {
                     logger::warn("FormID {:X} not found in plugin '{}' (config: {})", localFormID, pluginName,
@@ -91,7 +91,7 @@ namespace Parser {
                 RE::TESForm::LookupByID(std::stoul(Utilities::TrimString(identifier), nullptr, 16));
             if (resolvedForm) {
                 logger::debug("Resolved EditorID '{}' to FormID {:X} (config: {})", identifier,
-                             resolvedForm->GetFormID(), configFileName);
+                              resolvedForm->GetFormID(), configFileName);
                 return resolvedForm;
             }
         } catch (...) { /* ignore format errors, try next method */
@@ -113,7 +113,6 @@ namespace Parser {
                     if (resolvedForm) return resolvedForm;
                     resolvedForm = dataHandler->LookupForm(globalFormID, "Update.esm");
                     if (resolvedForm) return resolvedForm;
-                    // Add DLC checks if needed...
                 }
             } catch (...) { /* Ignore parse errors */
             }
@@ -135,7 +134,11 @@ namespace Parser {
     }
 
     SpellRule ParseSpellRule(const std::string& configLine, const std::string& configFileName) {
+        auto startTime = std::chrono::high_resolution_clock::now();
         std::vector<std::string> parts = Utilities::SplitString(configLine, '|');
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+        logger::warn("Parsing time: {} microseconds", duration);
         if (parts.empty()) {
             return {};  // Return an empty SpellRule if no parts are found
         }
@@ -161,30 +164,31 @@ namespace Parser {
             logger::warn("Failed to resolve form for '{}'", spellRule.nameFilter);
         }
 
-        // RE::SpellItem* spellItem = spellRule.resolvedForm->As<RE::SpellItem>();
-        // if (!spellItem) {
-        //     logger::warn("Failed to cast resolved form to SpellItem for '{}'", spellRule.nameFilter);
-        //     return {};  // Return an empty SpellRule if the cast fails
-        // }
-        GBL::spellRules.insert({Utilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
+        Global::spellRules.insert({Utilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
 
         spellRule.Log();
         return spellRule;
     }
 
     void ParseEnableRule(const std::string& value, const std::string& /*configFileName*/) {
-        GBL::generalRule.enabled = Utilities::ToLower(value) == "true" || value == "1";
+        Global::generalRule.enabled = Utilities::ToLower(value) == "true" || value == "1";
     }
     void ParseShoutsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
-        GBL::generalRule.shoutsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+        Global::generalRule.shoutsEnabled = Utilities::ToLower(value) == "true" || value == "1";
     }
     void ParseSpellsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
-        GBL::generalRule.spellsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+        Global::generalRule.spellsEnabled = Utilities::ToLower(value) == "true" || value == "1";
     }
 
     void ParseLoggingLevelRule(const std::string& value, const std::string& configFileName) {
         auto loggingLevel = Utilities::ToLower(Utilities::TrimString(value));
-        if (loggingLevel == "debug") {
+        if (loggingLevel == "trace") {
+            spdlog::set_level(spdlog::level::trace);
+        } else if (loggingLevel == "off") {
+            spdlog::set_level(spdlog::level::off);
+        } else if (loggingLevel == "critical") {
+            spdlog::set_level(spdlog::level::critical);
+        } else if (loggingLevel == "debug") {
             spdlog::set_level(spdlog::level::debug);
         } else if (loggingLevel == "info") {
             spdlog::set_level(spdlog::level::info);
@@ -198,21 +202,6 @@ namespace Parser {
             spdlog::set_level(spdlog::level::info);
         }
     }
-
-    // GeneralRule ParseGeneralRule(const std::string& configLine) {
-    //     GeneralRule generalRule;
-    //     generalRule.GetParsers()
-    //     // std::vector<std::string> parts = Utilities::SplitString(configLine, '|');
-    //     // if (parts.size() >= 2) {
-    //     //     generalRule.enabled = parts[0] == "true";
-    //     //     generalRule.shoutsEnabled = parts[1] == "true";
-    //     //     if (parts.size() > 2) {
-    //     //         generalRule.spellsEnabled = parts[2] == "true";
-    //     //     }
-    //     // }
-    //     return generalRule;
-    // }
-
 }
 
 OrderedMap<std::string, RuleVariant> BaseRule::GetFields() {
@@ -254,15 +243,15 @@ void BaseRule::Log() const {
 
 OrderedMap<std::string, RuleVariant> SpellRule::GetFields() {
     auto baseFields = BaseRule::GetFields();
-    baseFields.Concatenate({{"durationFilter", &durationFilter},
-                            {"minDurationFilter", &minDurationFilter},
-                            {"magnitudeFilter", &magnitudeFilter}});
+    baseFields.Concatenate_fast({{"durationFilter", &durationFilter},
+                                 {"minDurationFilter", &minDurationFilter},
+                                 {"magnitudeFilter", &magnitudeFilter}});
     return baseFields;
 }
 
 OrderedMap<std::string, std::function<void(const std::string&)>> SpellRule::GetParsers() {
     auto baseParsers = BaseRule::GetParsers();
-    baseParsers.Concatenate(
+    baseParsers.Concatenate_fast(
         {{"durationFilter", [this](const std::string& value) { std::istringstream(value) >> durationFilter; }},
          {"minDurationFilter", [this](const std::string& value) { std::istringstream(value) >> minDurationFilter; }},
          {"magnitudeFilter", [this](const std::string& value) { std::istringstream(value) >> magnitudeFilter; }}});
@@ -295,12 +284,6 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
         logger::warn("ApplyRulesToSpell: SpellItem is null.");
         return;
     }
-    // TODO: Do i want this check?
-    // if (spellItem->GetFormType() != RE::FormType::Spell) {
-    //     logger::warn("ApplyRulesToSpell: SpellItem is not a spell.");
-    //     return;
-    // }
-    // RE::BSTArray<RE::Effect*> effects = spellItem->effects;
     std::span<RE::BGSKeyword*> spellKeywords = activeEffect->spell->GetKeywords();
 
     // If the duration is less then the minDurationFilter - skip the effect
@@ -310,14 +293,14 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
 
     if (isPermanentEnabled) {
         logger::debug("ApplyRulesToSpell: Setting duration to permanent for effect: {:#010x} ({})",
-                     activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
-        activeEffect->duration = permanentSpellDuration;
+                      activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
+        activeEffect->duration = Global::permanentSpellDuration;
     }
 
     // check if durationfilter is not set to default
     if (durationFilter != -1.0f) {
         logger::debug("ApplyRulesToSpell: Setting duration to {} for effect: {:#010x} ({})", durationFilter,
-                     activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
+                      activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
         activeEffect->duration = durationFilter;  // Set the duration to the filter value
     }
 

@@ -22,7 +22,7 @@ void SetupLog() {
     auto loggerPtr = std::make_shared<spdlog::logger>("log", std::move(fileLoggerPtr));
     spdlog::set_default_logger(std::move(loggerPtr));
     spdlog::set_level(spdlog::level::trace);
-    spdlog::flush_on(spdlog::level::info);
+    spdlog::flush_on(spdlog::level::debug);
 }
 
 SKSEPluginLoad(const SKSE::LoadInterface *skse) {
@@ -32,29 +32,28 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
     logger::info("Game version : {}", skse->RuntimeVersion().string());
 
     SKSE::Init(skse);
-    // SKSE::GetPapyrusInterface()->Register(BlinkTeleportConfig::MCM::Register);
 
-    
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
+        if (message->type == SKSE::MessagingInterface::kDataLoaded) {
+            logger::debug("DataLoaded event received, starting SpellCastDetector...");
+            ConfigLoader().LoadConfigFile("Data/SKSE/Plugins/LoricaNG.ini");
+            Global::InitializeShoutSpellMap();
+        }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
-            if (!GBL::generalRule.enabled || (!GBL::generalRule.shoutsEnabled && !GBL::generalRule.spellsEnabled)) {
+            if (!Global::generalRule.enabled ||
+                (!Global::generalRule.shoutsEnabled && !Global::generalRule.spellsEnabled)) {
                 logger::debug("PostLoadGame event received, but shouts and spells are disabled in the general rule.");
                 return;
             }
-            logger::debug("PostLoadGame event received, starting Applying Permanent Spells...");
-            // ActiveEffectEventHandler::Register();
+            logger::debug("PostLoadGame event received, start applying Permanent Spells...");
             SpellCastEventHandler::Register();
             SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
             ApplyAllSavedPermanentSpellsToPlayer();
         }
-        if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-            logger::debug("DataLoaded event received, starting SpellCastDetector...");
-            ConfigLoader().LoadConfigFile("Data/SKSE/Plugins/LoricaNG.ini");
-            GBL::InitializeShoutSpellMap();
-        }
     });
-    
+
     SpellDataPersistence::RegisterSerializationCallbacks();
+    // TODO change this name
     logger::info("{} initialization complete.", "Lorical's SpellCastDetector");
     return true;
 }

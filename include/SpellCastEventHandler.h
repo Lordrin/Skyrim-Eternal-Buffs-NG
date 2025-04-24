@@ -2,10 +2,9 @@
 
 class SpellCastEventHandler : public RE::BSTEventSink<RE::TESSpellCastEvent> {
 private:
-    uint32_t reserveSPellId_;
 
 public:
-    SpellCastEventHandler();
+    SpellCastEventHandler() = default;
     static SpellCastEventHandler& GetSingleton() {
         static SpellCastEventHandler instance;
         return instance;

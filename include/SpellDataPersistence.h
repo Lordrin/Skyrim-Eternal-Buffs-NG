@@ -1,4 +1,4 @@
-#pragma once  // Use #pragma once for modern header guards
+#pragma once
 
 #include <algorithm>
 #include <map>
@@ -12,13 +12,12 @@
 #include "StringUtilities.h"
 #include "ConfigRules.h"
 
+// Stores a map where:
+// Key = SpellItem FormID
+// Value = Vector of EffectSetting (MGEF) FormIDs associated with that spell
 using SpellEffectsMap = std::map<RE::FormID, std::vector<RE::FormID>>;
 
 namespace SpellDataPersistence {
-    // Stores a map where:
-    // Key = SpellItem FormID
-    // Value = Vector of EffectSetting (MGEF) FormIDs associated with that spell
-
     // Our runtime storage for the data
     static SpellEffectsMap g_savedSpellData;
     // Mutex to protect access if multiple threads could modify it (safer practice)
@@ -26,10 +25,7 @@ namespace SpellDataPersistence {
 
     // --- Constants for Serialization ---
     constexpr uint32_t kDataKey = 'LRDN';  // plugin's unique ID
-    constexpr uint32_t kDataVersion = 1;
-
-    // extern std::vector<EffectRule> effectRules;
-    // extern std::unordered_map<std::string, SpellRule> spellRules;
+    constexpr uint32_t kDataVersion = 1; 
 
     // Logs the attributes of SpellEffectsMap
     void LogSpellSFromMap(const SpellEffectsMap& spellEffectsMap);
@@ -62,9 +58,4 @@ namespace SpellDataPersistence {
     const std::vector<RE::FormID> FlattenSpellEffectsMap(const SpellEffectsMap& spellEffectsMap);
     const std::unordered_set<RE::FormID> FlattenSpellEffectsMapToSet(const SpellEffectsMap& spellEffectsMap);
 
-    /**
-     * @brief Populates the reversed map (g_reversedSpellData) based on g_savedSpellData.
-     */
-    // void PopulateReversedSpellData();
-
-}  // namespace SpellDataPersistence
+}

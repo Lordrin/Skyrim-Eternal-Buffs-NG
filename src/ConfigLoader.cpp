@@ -12,7 +12,7 @@ void ConfigLoader::RegisterParsers() {
 }
 
 void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
-    logger::debug("--- Loading config file: {} ---", filePath.string());
+    logger::info("--- Loading config file: {} ---", filePath.string());
     std::ifstream configFile(filePath);
     std::string line;
     std::string currentSection;  // You might use sections later if needed
@@ -52,7 +52,7 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
         }
 
         auto currentKeyWordParsers = sections.find(currentSection);
-        if(currentKeyWordParsers == sections.end()) {
+        if (currentKeyWordParsers == sections.end()) {
             logger::warn("Unknown section '{}' on line {} in {}. Skipping.", currentSection, lineNum,
                          filePath.filename().string());
             continue;
@@ -61,7 +61,7 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
         // --- Find and call the registered parser for this keyword ---
         auto it = currentKeyWordParsers->second.find(keyword);
         if (it != currentKeyWordParsers->second.end()) {
-            // Call the associated function (e.g., ParseEffectRule)
+            // Call the associated function (e.g., ParseSpellRule)
             try {
                 it->second(value, filePath.filename().string());  // Pass value string and filename
             } catch (const std::exception& e) {
@@ -76,4 +76,9 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
         }
     }
     logger::debug("--- Finished loading config file: {} ---", filePath.string());
+
+    auto allRules = Global::GetSpellRules();
+    for (const auto& rule : allRules) {\
+        rule.second.Log();
+    }
 }

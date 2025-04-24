@@ -12,10 +12,13 @@ struct SpellCastInfo {
     bool alreadyOnPlayer;
 };
 
-bool RemovePermanentSpellFromActor(RE::SpellItem* spellItem, RE::Actor* actor);
 void DispellAllSavedSpellsFromActor(RE::Actor& actor);
 void DispellAllSavedSpellsFromPlayer();
-bool ApplyPermanentSpellToActor(RE::SpellItem* spellItem, RE::Actor* actor);
+
+void ApplyAllSavedSpellsToActor(RE::Actor& actor);
 void ApplyAllSavedPermanentSpellsToPlayer();
+
 void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo);
+
+// Only if the spdlog level is set to debug or lower
 void LogActiveEffectDetails(RE::ActiveEffect* activeEffect);

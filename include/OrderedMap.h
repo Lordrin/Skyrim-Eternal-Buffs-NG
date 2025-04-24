@@ -15,14 +15,13 @@ private:
         std::conditional_t<std::is_reference_v<ValueType>,
                            std::optional<std::reference_wrapper<std::remove_reference_t<ValueType>>>, ValueType>;
     std::unordered_map<KeyType, StoredValueType> map;
-    std::vector<KeyType> order;  // List to store keys in insertion order
+    std::vector<KeyType> order;  // Vector to store keys in insertion order
 
 public:
     ~OrderedMap() = default;
 
     OrderedMap() = default;
 
-    // Constructor that accepts an initializer list
     OrderedMap(std::initializer_list<std::pair<const KeyType, ValueType>> initList) {
         map.reserve(initList.size());    // Reserve space in the map to avoid rehashing
         order.reserve(initList.size());  // Reserve space in the vector to avoid reallocations
@@ -60,29 +59,19 @@ public:
         return map.find(key);
     }
 
-    // void Concatenate(const OrderedMap& other) {
-    //     for (const auto& item : other.map) {
-    //         Insert(item.first, item.second);  // Use the existing Insert method to maintain order
-    //     }
-    // }
-
+    // Concatenate another OrderedMap in O(n) time
+    // This is a copy operation, so the other map will remain unchanged.
+    // This is useful for merging two OrderedMaps while keeping the original maps intact.
     void Concatenate(const OrderedMap& other) {
         const auto& otherMap = other.GetMap();
         for (const auto& itemKey : other.GetOrder()) {
             if constexpr (std::is_reference_v<ValueType>) {
                 Insert(itemKey, otherMap.get(itemKey).value().get());  // Unwrap the reference
-                // Insert(itemkey, item.second.value().get());  // Unwrap the reference
             } else {
                 Insert(itemKey, otherMap.at(itemKey));
             }
         }
     }
-
-    // void Concatenate(const OrderedMap other) {
-    //     for (const auto& item : other.map) {
-    //         Insert(item.first, item.second);  // Use the existing Insert method to maintain order
-    //     }
-    // }
 
     // Efficiently concatenate another OrderedMap in O(1) time
     // This is a move operation, so the other map will be empty after this operation.
@@ -100,16 +89,6 @@ public:
         other.map.clear();
     }
 
-    // // Lookup a value by key (O(1) lookup)
-    // ValueType Lookup(const KeyType& key) const {
-    //     auto it = map.find(key);
-    //     if (it != map.end()) {
-    //         return it->second;
-    //     } else {
-    //         throw std::runtime_error("Key not found");
-    //     }
-    // }
-
     // Lookup a value by key (O(1) lookup)
     ValueType Lookup(const KeyType& key) const {
         auto it = map.find(key);
@@ -124,13 +103,7 @@ public:
         }
     }
 
-    // auto find(const KeyType& key) const {
-    //     return map.find(key);
-    // }
-
-    // Get map
     const std::unordered_map<KeyType, ValueType>& GetMap() const { return map; }
 
-    // Get order
     const std::vector<KeyType>& GetOrder() const { return order; }
 };
