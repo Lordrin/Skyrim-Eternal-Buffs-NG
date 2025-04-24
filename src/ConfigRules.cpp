@@ -72,7 +72,7 @@ namespace Parser {
                 std::string pluginName = Utilities::TrimString(formPluginPair[1]);
                 RE::TESForm* resolvedForm = dataHandler->LookupForm(localFormID, pluginName);
                 if (resolvedForm) {
-                    logger::debug("Resolved FormID {:X} to '{}' (config: {})", localFormID, resolvedForm->GetName(),
+                    logger::debug("Resolved FormID {:#010x} to '{}' (config: {})", localFormID, resolvedForm->GetName(),
                                   configFileName);
                     return resolvedForm;
                 } else {
@@ -134,11 +134,8 @@ namespace Parser {
     }
 
     SpellRule ParseSpellRule(const std::string& configLine, const std::string& configFileName) {
-        auto startTime = std::chrono::high_resolution_clock::now();
         std::vector<std::string> parts = Utilities::SplitString(configLine, '|');
-        auto endTime = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-        logger::warn("Parsing time: {} microseconds", duration);
+
         if (parts.empty()) {
             return {};  // Return an empty SpellRule if no parts are found
         }
@@ -158,15 +155,15 @@ namespace Parser {
         ParseSplitLine(orderedParts, spellRule.GetParsers().GetOrder(), spellRule.GetParsers().GetMap());
 
         if (spellRule.resolvedForm) {
-            logger::debug("Resolved form: {}", spellRule.resolvedForm->GetName());
+            logger::info("Resolved FormID {:#010x} to '{}' (config: {})", spellRule.resolvedForm->GetFormID(),
+                         spellRule.resolvedForm->GetName(), configFileName);
             spellRule.nameFilter = spellRule.resolvedForm->GetName();  // Set the nameFilter to the resolved form's name
-        } else {
-            logger::warn("Failed to resolve form for '{}'", spellRule.nameFilter);
         }
 
         Global::spellRules.insert({Utilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
 
-        spellRule.Log();
+        auto to_print = spellRule.ToString();
+        logger::debug("{}", to_print);
         return spellRule;
     }
 
@@ -201,6 +198,7 @@ namespace Parser {
                          configFileName);
             spdlog::set_level(spdlog::level::info);
         }
+        logger::info("Logging level set to '{}'", loggingLevel);
     }
 }
 
@@ -234,8 +232,8 @@ bool BaseRule::ShouldApplyRuleToForm(RE::TESForm* form) const {
     }
 }
 
-void BaseRule::Log() const {
-    logger::info(
+std::string BaseRule::ToString() const {
+    return fmt::format(
         "BaseRule: sourceFile = {}, FormName = {}, nameFilter = {}, isPermanentEnabled = {}, keywordFilter = {}",
         sourceFile, resolvedForm ? resolvedForm->GetName() : "nullptr", nameFilter, isPermanentEnabled,
         Utilities::Join(keywordFilter, ", "));
@@ -310,8 +308,10 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
     }
 }
 
-void SpellRule::Log() const {
-    BaseRule::Log();
-    logger::info("SpellRule: durationFilter = {}, minDurationFilter = {}, magnitudeFilter = {}", durationFilter,
-                 minDurationFilter, magnitudeFilter);
+std::string SpellRule::ToString() const {
+    std::string toLog = BaseRule::ToString();
+    return fmt::format("{} -- SpellRule: durationFilter = {}, minDurationFilter = {}, magnitudeFilter = {}", toLog,
+                       durationFilter, minDurationFilter, magnitudeFilter, sourceFile,
+                       resolvedForm ? resolvedForm->GetName() : "nullptr", nameFilter, isPermanentEnabled,
+                       Utilities::Join(keywordFilter, ", "));
 }

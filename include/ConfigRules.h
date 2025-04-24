@@ -20,7 +20,7 @@ struct BaseRule {
     OrderedMap<std::string, RuleVariant> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
     bool ShouldApplyRuleToForm(RE::TESForm* form) const;
-    void Log() const;
+    std::string ToString() const;
 };
 
 struct SpellRule : BaseRule {
@@ -32,7 +32,7 @@ struct SpellRule : BaseRule {
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
     bool ShouldApplyRuleToSpell(RE::SpellItem* spellItem) const;
     void ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) const;
-    void Log() const;
+    std::string ToString() const;
 };
 
 struct GeneralRule {

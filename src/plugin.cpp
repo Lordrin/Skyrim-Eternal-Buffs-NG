@@ -35,8 +35,12 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-            logger::debug("DataLoaded event received, starting SpellCastDetector...");
-            ConfigLoader().LoadConfigFile("Data/SKSE/Plugins/InfinityBuffsNG.ini");
+            ConfigLoader configLoader= ConfigLoader();
+            std::vector configFiles = configLoader.GetConfigFileNames();
+            configLoader.LoadConfigFile("Data/SKSE/Plugins/InfinityBuffsNG.ini");
+            for (const auto& configFile : configFiles) {
+                configLoader.LoadConfigFile(configLoader.directory / configFile);
+            }
             Global::InitializeShoutSpellMap();
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
@@ -45,7 +49,6 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
                 logger::debug("PostLoadGame event received, but shouts and spells are disabled in the general rule.");
                 return;
             }
-            logger::debug("PostLoadGame event received, start applying Permanent Spells...");
             SpellCastEventHandler::Register();
             SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
             ApplyAllSavedPermanentSpellsToPlayer();

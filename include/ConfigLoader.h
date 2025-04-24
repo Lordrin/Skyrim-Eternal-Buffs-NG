@@ -29,6 +29,9 @@ public:
      */
     void LoadConfigFile(const std::filesystem::path& filePath);
 
+    std::vector<std::string> GetConfigFileNames();
+    const std::filesystem::path directory = "Data/SKSE/Plugins/";
+    
 private:
     std::unordered_map<std::string, std::unordered_map<std::string, KeywordParser>> sections;
 };
