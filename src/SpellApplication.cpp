@@ -288,9 +288,4 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
             }
         }
     }
-    auto startTime = castInfo.startTime;
-    // Log the time taken for the entire process
-    auto endTime = std::chrono::high_resolution_clock::now();
-    auto totalDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
-    logger::info("Total time taken for spell cast event including next frame: {} microseconds", totalDuration);
 }
