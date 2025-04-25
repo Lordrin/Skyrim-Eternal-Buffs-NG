@@ -4,6 +4,82 @@
 #include "SpellDataPersistence.h"
 #include "SpellLogging.h"
 
+/**
+ * @brief Applies the active effects associated with a given spell to the player character.
+ *
+ * This function simulates casting the spell on the player, causing the game's magic system
+ * to create and manage the corresponding ActiveEffect instance(s) on the player.
+ * This is generally safer and more robust than manually creating ActiveEffect objects.
+ *
+ * Note: This works best for spells intended to be cast on 'Self' or Ability-type spells.
+ * The casting source is set to kSelf. Casting might fail based on game conditions
+ * (resistances, effect conditions, etc.).
+ *
+ * @param a_spell A pointer to the SpellItem whose effects should be applied. Must not be null.
+ */
+void ApplySpellEffectsToPlayer(RE::SpellItem* a_spell)
+{
+    // 1. Validate the input spell
+    if (!a_spell) {
+        SKSE::log::warn("ApplySpellEffectsToPlayer: Received null spell pointer.");
+        // Or use _DMESSAGE, _MESSAGE etc. depending on your logging setup
+        return;
+    }
+
+    // 2. Get the Player Character singleton
+    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+    if (!player) {
+        SKSE::log::error("ApplySpellEffectsToPlayer: Could not get PlayerCharacter singleton.");
+        return;
+    }
+
+    // 3. Get a MagicCaster instance from the player.
+    //    Using kSelf is appropriate for applying effects directly to the player,
+    //    as if it were an innate ability or a self-targeted cast.
+    RE::MagicCaster* magicCaster = player->GetMagicCaster(RE::MagicSystem::CastingSource::kInstant);
+    if (!magicCaster) {
+        SKSE::log::error("ApplySpellEffectsToPlayer: Failed to get MagicCaster(kSelf) for player.");
+        return;
+    }
+
+    magicCaster->CastSpellImmediate(a_spell, true, player, 100.0f, true, false, nullptr);
+
+    // 4. Cast the spell *from* the player *onto* the player.
+    //    Parameters for Cast(MagicItem*, isDualCasting, target, effectiveness, isConcentration, magnitudeOverride, originator):
+    //    - a_spell: The spell to cast.
+    //    - false: Not dual casting.
+    //    - player: The target of the spell.
+    //    - 1.0f: Default effectiveness (optional, depends on specific Cast overload).
+    //    - false: Not a concentration spell (usually; the system might handle this based on spell type).
+    //    We use a simpler overload here if available: Cast(SpellItem*, bool bIsDualCasting, Actor* target)
+    
+    // magicCaster->Cast(a_spell,    // The spell containing the effect(s)
+    //                   false,      // Not dual casting
+    //                   player);    // Target is the player themselves
+
+    // Optional: Log that the cast attempt was made
+    SKSE::log::info("ApplySpellEffectsToPlayer: Attempted to cast spell '{}' (FormID: {:X}) on player.", a_spell->GetName(), a_spell->GetFormID());
+
+    // Note: The actual application of the ActiveEffect happens internally within the Cast function
+    // and subsequent game updates. Success isn't guaranteed (e.g., conditions on the MGEF).
+    // You could check player->GetActiveEffectList() afterwards if needed, but that's more complex.
+}
+
+SpellCastEventHandler::SpellCastEventHandler() {
+    RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
+    RE::FormID reserveMagickaFormID = 0x00D64;
+    RE::FormID reserveMagickaEffectFormID = 0x00D63;
+    _reserveMagickaForm = dataHandler->LookupForm(reserveMagickaFormID, _pluginName);
+    _reserveMagickaEffectForm = dataHandler->LookupForm(reserveMagickaEffectFormID, _pluginName);
+
+    logger::info("reserve magicka spell found {}", _reserveMagickaForm->GetName());
+    logger::info("reserve magicka effect spell found {}", _reserveMagickaEffectForm->GetName());
+
+    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+    RE::SpellItem* spell = _reserveMagickaForm->As<RE::SpellItem>();
+    ApplySpellEffectsToPlayer(spell);
+}
+
 RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellCastEvent* event,
                                                              RE::BSTEventSource<RE::TESSpellCastEvent>* /*source*/) {
     if (!event || !event->object || !event->spell) {

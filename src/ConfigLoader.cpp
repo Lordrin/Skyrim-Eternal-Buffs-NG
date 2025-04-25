@@ -3,12 +3,12 @@
 ConfigLoader::ConfigLoader() { RegisterParsers(); }
 
 void ConfigLoader::RegisterParsers() {
-    sections["spells"]["spell"] = Parser::ParseSpellRule;
+    _sections["spells"]["spell"] = Parser::ParseSpellRule;
 
-    sections["general"]["enable"] = Parser::ParseEnableRule;
-    sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
-    sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
-    sections["general"]["logginglevel"] = Parser::ParseLoggingLevelRule;
+    _sections["general"]["enable"] = Parser::ParseEnableRule;
+    _sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
+    _sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
+    _sections["general"]["logginglevel"] = Parser::ParseLoggingLevelRule;
 }
 
 void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
@@ -65,8 +65,8 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
                 continue;
             }
 
-            auto currentKeyWordParsers = sections.find(currentSection);
-            if (currentKeyWordParsers == sections.end()) {
+            auto currentKeyWordParsers = _sections.find(currentSection);
+            if (currentKeyWordParsers == _sections.end()) {
                 logger::warn("Unknown section '{}' on line {} in {}. Skipping.", currentSection, lineNum,
                              filePath.filename().string());
                 continue;

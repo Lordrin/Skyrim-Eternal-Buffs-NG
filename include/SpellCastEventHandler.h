@@ -2,9 +2,12 @@
 
 class SpellCastEventHandler : public RE::BSTEventSink<RE::TESSpellCastEvent> {
 private:
+    RE::TESForm* _reserveMagickaForm = nullptr;
+    RE::TESForm* _reserveMagickaEffectForm = nullptr;
+    const std::string _pluginName = "EternalBuffsNG.esp";
 
 public:
-    SpellCastEventHandler() = default;
+    SpellCastEventHandler();
     static SpellCastEventHandler& GetSingleton() {
         static SpellCastEventHandler instance;
         return instance;

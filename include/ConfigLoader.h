@@ -33,5 +33,5 @@ public:
     const std::filesystem::path directory = "Data/SKSE/Plugins/";
     
 private:
-    std::unordered_map<std::string, std::unordered_map<std::string, KeywordParser>> sections;
+    std::unordered_map<std::string, std::unordered_map<std::string, KeywordParser>> _sections;
 };
