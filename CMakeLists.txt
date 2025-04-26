@@ -83,6 +83,9 @@ target_sources(
         "include/ConfigLoader.h" "src/ConfigLoader.cpp"
         "include/StringUtilities.h" "src/StringUtilities.cpp"
         "include/ConfigRules.h" "src/ConfigRules.cpp"
+        "include/Visitor.h"
+        "include/TPPlayerInputEventHandler.h" "src/TPPlayerInputEventHandler.cpp"
+        "include/Config.h" "src/Config.cpp"
 )
 
 target_precompile_headers(

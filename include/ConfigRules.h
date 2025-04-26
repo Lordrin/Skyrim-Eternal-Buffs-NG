@@ -7,6 +7,7 @@
 
 #include "OrderedMap.h"
 #include "StringUtilities.h"
+#include "Config.h"
 
 using RuleVariant = std::variant<std::string*, RE::TESForm*, bool*, uint32_t*, std::vector<std::string>*, float*>;
 
@@ -41,16 +42,17 @@ struct GeneralRule {
     bool spellsEnabled = true;
 };
 
-namespace Global {
-    const float permanentSpellDuration = 86313600.0f; // 999 days
-    extern std::unordered_map<std::string, SpellRule> spellRules;
-    std::unordered_map<std::string, SpellRule>& GetSpellRules();
-    extern GeneralRule generalRule;
-    extern std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
-    std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap();
-
-    void InitializeShoutSpellMap();
-}
+// namespace Config {
+//     const float permanentSpellDuration = 86313600.0f; // 999 days
+//     extern std::unordered_map<std::string, SpellRule> spellRules;
+//     std::unordered_map<std::string, SpellRule>& GetSpellRules();
+//     extern GeneralRule generalRule;
+//     extern std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
+//     std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap();
+//     extern uint32_t keyBinding = 43;
+//     extern bool toggleKeyHeld = false;
+//     void InitializeShoutSpellMap();
+// }
 
 namespace Parser {
     /**

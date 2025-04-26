@@ -1,38 +1,38 @@
 #include "ConfigRules.h"
 
-namespace Global {
-    // The key is the name of the spell
-    std::unordered_map<std::string, SpellRule> spellRules;
+// namespace Global {
+//     // The key is the name of the spell
+//     std::unordered_map<std::string, SpellRule> spellRules;
 
-    std::unordered_map<std::string, SpellRule>& GetSpellRules() { return spellRules; }
+//     std::unordered_map<std::string, SpellRule>& GetSpellRules() { return spellRules; }
 
-    std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
+//     std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
 
-    std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap() { return shoutSpellMap; }
+//     std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap() { return shoutSpellMap; }
 
-    void InitializeShoutSpellMap() {
-        auto dataHandler = RE::TESDataHandler::GetSingleton();
-        if (!dataHandler) {
-            logger::error("Failed to get TESDataHandler.");
-            return;
-        }
+//     void InitializeShoutSpellMap() {
+//         auto dataHandler = RE::TESDataHandler::GetSingleton();
+//         if (!dataHandler) {
+//             logger::error("Failed to get TESDataHandler.");
+//             return;
+//         }
 
-        for (auto* shout : dataHandler->GetFormArray<RE::TESShout>()) {
-            if (!shout) {
-                continue;
-            }
+//         for (auto* shout : dataHandler->GetFormArray<RE::TESShout>()) {
+//             if (!shout) {
+//                 continue;
+//             }
 
-            for (const auto& word : shout->variations) {
-                if (word.spell) {
-                    shoutSpellMap[word.spell->GetFormID()] = shout;
-                }
-            }
-        }
-    }
+//             for (const auto& word : shout->variations) {
+//                 if (word.spell) {
+//                     shoutSpellMap[word.spell->GetFormID()] = shout;
+//                 }
+//             }
+//         }
+//     }
 
-    GeneralRule generalRule;
+//     GeneralRule generalRule;
 
-}
+// }
 
 namespace Parser {
 
@@ -159,6 +159,8 @@ namespace Parser {
                          spellRule.resolvedForm->GetName(), configFileName);
             spellRule.nameFilter = spellRule.resolvedForm->GetName();  // Set the nameFilter to the resolved form's name
         }
+
+        auto config = Config::GetSingleton();
 
         Global::spellRules.insert({Utilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
 

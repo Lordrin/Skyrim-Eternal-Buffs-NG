@@ -12,8 +12,8 @@ bool ApplyConfigRulesToActiveEffect(RE::ActiveEffect* activeEffect) {
         return false;
     }
 
-    auto spellRuleIt = Global::GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
-    if (spellRuleIt != Global::GetSpellRules().end()) {
+    auto spellRuleIt = Config::GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+    if (spellRuleIt != Config::GetSpellRules().end()) {
         SpellRule spellRule = spellRuleIt->second;
         spellRule.ShouldApplyRuleToSpell(activeEffect->spell->As<RE::SpellItem>());
         spellRule.ApplySpellRulesToActiveEffect(activeEffect);
@@ -125,7 +125,7 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         // If the effect is linked to a saved spell - Reset duration
         if (AllSavedSpells.find(linkedSpellFormId) != AllSavedSpells.end()) {
             logger::debug("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
-            activeEffect->duration = Global::permanentSpellDuration;  // Set to permanent duration
+            activeEffect->duration = Config::permanentSpellDuration;  // Set to permanent duration
             activeEffect->elapsedSeconds = 0.0f;                      // Reset elapsed time
             appliedSpellsIDs.insert(linkedSpellFormId);               // Add to the list of applied spells
 
@@ -214,7 +214,7 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
         // The spell is already cached but has been dispelled already
         bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
         if (!appliedConfig) {
-            activeEffect->duration = Global::permanentSpellDuration;
+            activeEffect->duration = Config::permanentSpellDuration;
         }
         logger::debug("Spell '{}' ({:#010x}) is not on player. Apply it.", spellName, castInfo.spellItem.GetFormID());
     }
@@ -222,13 +222,13 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
 
 // Helper function to check if an active effect is temporary
 bool IsTemporaryEffect(RE::ActiveEffect* activeEffect) {
-    return activeEffect->duration > 0.0f && activeEffect->duration < Global::permanentSpellDuration;
+    return activeEffect->duration > 0.0f && activeEffect->duration < Config::permanentSpellDuration;
 }
 // Function to handle unsaved spells
 void HandleUnsavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo) {
     bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
     if (!appliedConfig && IsTemporaryEffect(activeEffect)) {
-        activeEffect->duration = Global::permanentSpellDuration;
+        activeEffect->duration = Config::permanentSpellDuration;
     }
     SpellDataPersistence::CacheSpellForSaving(&castInfo.spellItem);
 }

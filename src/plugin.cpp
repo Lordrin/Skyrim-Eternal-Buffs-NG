@@ -41,11 +41,11 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
             for (const auto& configFile : configFiles) {
                 configLoader.LoadConfigFile(configLoader.directory / configFile);
             }
-            Global::InitializeShoutSpellMap();
+            Config::InitializeShoutSpellMap();
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
-            if (!Global::generalRule.enabled ||
-                (!Global::generalRule.shoutsEnabled && !Global::generalRule.spellsEnabled)) {
+            if (!Config::generalRule.enabled ||
+                (!Config::generalRule.shoutsEnabled && !Config::generalRule.spellsEnabled)) {
                 logger::debug("PostLoadGame event received, but shouts and spells are disabled in the general rule.");
                 return;
             }
