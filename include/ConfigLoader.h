@@ -9,6 +9,7 @@
 
 #include "StringUtilities.h"
 #include "ConfigRules.h"
+#include "ConfigParser.h"
 
 class ConfigLoader {
 public:

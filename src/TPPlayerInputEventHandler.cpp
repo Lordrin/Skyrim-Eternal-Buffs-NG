@@ -6,7 +6,7 @@ RE::BSEventNotifyControl TPPlayerInputEventHandler::ProcessEvent(RE::InputEvent*
         return RE::BSEventNotifyControl::kContinue;
     }
 
-    const auto hotKey = Config::keyBinding;
+    const auto hotKey = Config::GetSingleton().GetKeyBinding();
     if (hotKey == 0 || hotKey == 1) {
         return RE::BSEventNotifyControl::kContinue;
     }
@@ -16,13 +16,7 @@ RE::BSEventNotifyControl TPPlayerInputEventHandler::ProcessEvent(RE::InputEvent*
         return RE::BSEventNotifyControl::kContinue;
     }
 
-    // const std::chrono::milliseconds debounceDuration{config_.cooldown};
-    // auto currentTime = std::chrono::steady_clock::now();
-    // Check if enough time has passed since the last event was processed
-    // if (currentTime - lastProcessedTime < debounceDuration) {
-    //     return RE::BSEventNotifyControl::kContinue;
-    // }
-
+    // from https://github.com/powerof3/ReadOrTakeBooks
     for (auto inputEvent = *a_event; inputEvent; inputEvent = inputEvent->next) {
         if (inputEvent->eventType == RE::INPUT_EVENT_TYPE::kButton) {
             const RE::ButtonEvent* button = static_cast<const RE::ButtonEvent*>(inputEvent);
@@ -40,29 +34,14 @@ RE::BSEventNotifyControl TPPlayerInputEventHandler::ProcessEvent(RE::InputEvent*
                     break;
             }
 
-            auto& toggleKeyHeld = Config::toggleKeyHeld;
+            const auto toggleKeyHeld = Config::GetSingleton().GetToggleKeyHeld();
 
             if (key == hotKey) {
-                if (toggleKeyHeld != button->IsHeld()) {
-                    toggleKeyHeld = button->IsHeld();
-
-                    // if (const auto crossHairPickData = RE::CrosshairPickData::GetSingleton()) {
-                    //     const auto target = crossHairPickData->target.get();
-                    //     auto base = target ? target->GetBaseObject() : nullptr;
-
-                    //     if (base && base->IsBook()) {
-                    //         player->UpdateCrosshairs();
-                    //     }
-                    // }
+                if (Config::GetSingleton().GetToggleKeyHeld() != button->IsHeld()) {
+                    logger::trace("ToggleKeyHeld changed from {} to {}", toggleKeyHeld, button->IsHeld());
+                    Config::GetSingleton().GetToggleKeyHeld() = button->IsHeld();
                 }
             }
-
-            // if (key == config_.keyBinding) {
-            //     TeleportPlayer::GetSingleton().Teleport();
-
-            //     // Update the last processed time after handling the event
-            //     lastProcessedTime = std::chrono::steady_clock::now();
-            // }
         }
     }
 
@@ -70,7 +49,6 @@ RE::BSEventNotifyControl TPPlayerInputEventHandler::ProcessEvent(RE::InputEvent*
 }
 
 void TPPlayerInputEventHandler::Register() {
-    // static TPPlayerInputEventHandler inputEventHandler;
     auto inputDeviceManager = RE::BSInputDeviceManager::GetSingleton();
     if (inputDeviceManager) {
         inputDeviceManager->AddEventSink(&GetSingleton());

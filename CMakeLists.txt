@@ -86,6 +86,7 @@ target_sources(
         "include/Visitor.h"
         "include/TPPlayerInputEventHandler.h" "src/TPPlayerInputEventHandler.cpp"
         "include/Config.h" "src/Config.cpp"
+        "include/ConfigParser.h" "src/ConfigParser.cpp"
 )
 
 target_precompile_headers(

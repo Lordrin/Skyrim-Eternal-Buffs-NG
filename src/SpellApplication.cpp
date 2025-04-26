@@ -12,8 +12,9 @@ bool ApplyConfigRulesToActiveEffect(RE::ActiveEffect* activeEffect) {
         return false;
     }
 
-    auto spellRuleIt = Config::GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
-    if (spellRuleIt != Config::GetSpellRules().end()) {
+    auto spellRuleIt =
+        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
         SpellRule spellRule = spellRuleIt->second;
         spellRule.ShouldApplyRuleToSpell(activeEffect->spell->As<RE::SpellItem>());
         spellRule.ApplySpellRulesToActiveEffect(activeEffect);
@@ -125,9 +126,9 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         // If the effect is linked to a saved spell - Reset duration
         if (AllSavedSpells.find(linkedSpellFormId) != AllSavedSpells.end()) {
             logger::debug("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
-            activeEffect->duration = Config::permanentSpellDuration;  // Set to permanent duration
-            activeEffect->elapsedSeconds = 0.0f;                      // Reset elapsed time
-            appliedSpellsIDs.insert(linkedSpellFormId);               // Add to the list of applied spells
+            activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();  // Set to permanent duration
+            activeEffect->elapsedSeconds = 0.0f;                                          // Reset elapsed time
+            appliedSpellsIDs.insert(linkedSpellFormId);  // Add to the list of applied spells
 
         } else {
             logger::warn("  - Active effect not linked to a saved spell: {:#010x} - {}", linkedSpellFormId,
@@ -214,7 +215,7 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
         // The spell is already cached but has been dispelled already
         bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
         if (!appliedConfig) {
-            activeEffect->duration = Config::permanentSpellDuration;
+            activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
         }
         logger::debug("Spell '{}' ({:#010x}) is not on player. Apply it.", spellName, castInfo.spellItem.GetFormID());
     }
@@ -222,13 +223,13 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
 
 // Helper function to check if an active effect is temporary
 bool IsTemporaryEffect(RE::ActiveEffect* activeEffect) {
-    return activeEffect->duration > 0.0f && activeEffect->duration < Config::permanentSpellDuration;
+    return activeEffect->duration > 0.0f && activeEffect->duration < Config::GetSingleton().GetPermanentSpellDuration();
 }
 // Function to handle unsaved spells
 void HandleUnsavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo) {
     bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
     if (!appliedConfig && IsTemporaryEffect(activeEffect)) {
-        activeEffect->duration = Config::permanentSpellDuration;
+        activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
     }
     SpellDataPersistence::CacheSpellForSaving(&castInfo.spellItem);
 }

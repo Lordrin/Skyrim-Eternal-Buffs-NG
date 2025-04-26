@@ -7,5 +7,7 @@
 #include "RE/B/BSContainer.h"
 #include "RE/P/PerkEntryVisitor.h"
 
+#include "Config.h"
+
 using namespace std::literals;
 namespace logger = SKSE::log;

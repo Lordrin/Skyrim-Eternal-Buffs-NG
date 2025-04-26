@@ -143,10 +143,10 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
 
     bool isShout = false;
 
-    if (!Config::generalRule.shoutsEnabled || !Config::generalRule.spellsEnabled) {
+    if (!Config::GetSingleton().GetGeneralRule().shoutsEnabled || !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
         logger::debug("Shouts are enabled in the general rule.");
-        auto it = Config::GetShoutSpellMap().find(spellItem->GetFormID());
-        if (it != Config::GetShoutSpellMap().end()) {
+        auto it = Config::GetSingleton().GetShoutSpellMap().find(spellItem->GetFormID());
+        if (it != Config::GetSingleton().GetShoutSpellMap().end()) {
             RE::TESShout* shoutFound = it->second;
             const char* shoutName = shoutFound->GetName();
             logger::debug("Spell is part of shout:");
@@ -157,11 +157,11 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
         }
     }
 
-    if (!Config::generalRule.shoutsEnabled && isShout) {
+    if (Config::GetSingleton().GetGeneralRule().shoutsEnabled && isShout) {
         logger::debug("Shouts are disabled in the general rule.");
         return RE::BSEventNotifyControl::kContinue;
     }
-    if (!Config::generalRule.spellsEnabled && !isShout) {
+    if (!Config::GetSingleton().GetGeneralRule().spellsEnabled && !isShout) {
         logger::debug("Spells are disabled in the general rule.");
         return RE::BSEventNotifyControl::kContinue;
     }
@@ -172,7 +172,11 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     logger::debug("  FormID: {:#010x}", spellItem->GetFormID());
 
 
-    logger::info("istoggled {}", Config::toggleKeyHeld);
+    logger::info("istoggled {}", Config::GetSingleton().GetToggleKeyHeld());
+
+    if (Config::GetSingleton().GetToggleKeyHeld()) {
+        logger::info("istoggled {} and is not running {}", Config::GetSingleton().GetToggleKeyHeld(), !playerActor->IsRunning());
+    }
 
     // --- Summon Check ---
     // --- Check Max Summon Limit ---
