@@ -144,26 +144,47 @@ namespace Parser {
     }
 
     void ParseLoggingLevelRule(const std::string& value, const std::string& configFileName) {
-        auto loggingLevel = Utilities::ToLower(Utilities::TrimString(value));
-        if (loggingLevel == "trace") {
-            spdlog::set_level(spdlog::level::trace);
-        } else if (loggingLevel == "off") {
-            spdlog::set_level(spdlog::level::off);
-        } else if (loggingLevel == "critical") {
-            spdlog::set_level(spdlog::level::critical);
-        } else if (loggingLevel == "debug") {
-            spdlog::set_level(spdlog::level::debug);
-        } else if (loggingLevel == "info") {
-            spdlog::set_level(spdlog::level::info);
-        } else if (loggingLevel == "warn") {
-            spdlog::set_level(spdlog::level::warn);
-        } else if (loggingLevel == "error") {
-            spdlog::set_level(spdlog::level::err);
-        } else {
+        std::string loggingLevel = Utilities::ToLower(Utilities::TrimString(value));
+        spdlog::level::level_enum level = spdlog::level::from_str(loggingLevel);
+        if (level == spdlog::level::n_levels) {
             logger::warn("Unknown logging level '{}' in config file '{}'. Defaulting to 'info'.", loggingLevel,
                          configFileName);
-            spdlog::set_level(spdlog::level::info);
+            level = spdlog::level::info;
         }
+
+        spdlog::set_level(level);
+        // if (loggingLevel == "trace") {
+        //     spdlog::set_level(spdlog::level::trace);
+        // } else if (loggingLevel == "off") {
+        //     spdlog::set_level(spdlog::level::off);
+        // } else if (loggingLevel == "critical") {
+        //     spdlog::set_level(spdlog::level::critical);
+        // } else if (loggingLevel == "debug") {
+        //     spdlog::set_level(spdlog::level::debug);
+        // } else if (loggingLevel == "info") {
+        //     spdlog::set_level(spdlog::level::info);
+        // } else if (loggingLevel == "warn") {
+        //     spdlog::set_level(spdlog::level::warn);
+        // } else if (loggingLevel == "error") {
+        //     spdlog::set_level(spdlog::level::err);
+        // } else {
+        //     logger::warn("Unknown logging level '{}' in config file '{}'. Defaulting to 'info'.", loggingLevel,
+        //                  configFileName);
+        //     spdlog::set_level(spdlog::level::info);
+        // }
         logger::info("Logging level set to '{}'", loggingLevel);
+    }
+    void ParseSummonsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
+        Config::GetSingleton().GetGeneralRule().summonsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+    }
+
+    void ParseKeybindingRule(const std::string& value, const std::string& /*configFileName*/) {
+        try {
+            uint32_t key = std::stoul(value, nullptr, 10);
+            logger::info("Keybinding set to {}", key);
+            Config::GetSingleton().GetKeyBinding() = key;
+        } catch (std::exception& e) {
+            logger::warn("Failed to parse keybinding value '{}': {}", value, e.what());
+        }
     }
 }

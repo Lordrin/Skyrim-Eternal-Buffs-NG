@@ -102,7 +102,7 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         }
 
         RE::FormID effectFormID = activeEffect->GetBaseObject()->GetFormID();
-        logger::debug("  - Active Effect: {:#010x} - {}", effectFormID, activeEffect->GetBaseObject()->GetName());
+        logger::trace("  - Active Effect: {:#010x} - {}", effectFormID, activeEffect->GetBaseObject()->GetName());
 
         // Check if the effect is in the saved spell data
         if (flattenedSpellData.find(effectFormID) == flattenedSpellData.end()) {
@@ -198,14 +198,47 @@ void LogActiveEffectDetails(RE::ActiveEffect* activeEffect) {
 }
 
 // Function to handle saved spells
-void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo, const char* spellName) {
+void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo, const char* spellName,
+                      bool isSummonSpell) {
     RE::EffectSetting* mgef = activeEffect->GetBaseObject();
     const char* mgefName = mgef->GetName();
     if (!mgefName || mgefName[0] == '\0') {
         mgefName = "Unnamed Effect";
     }
 
-    if (castInfo.alreadyOnPlayer) {
+    bool shouldDispell = castInfo.alreadyOnPlayer;
+
+    if (isSummonSpell && Config::GetSingleton().GetToggleKeyHeld()) {
+        // Dispell if the key is held down
+        logger::debug("Spell '{}' ({:#010x}) is a summon spell and key is held. Dispel it.", spellName,
+                      castInfo.spellItem.GetFormID());
+        const auto activeEffectsOfSpell = castInfo.spellItem.effects;
+        // This is so only the same summon is dispelled.
+        for (auto& effect : activeEffectsOfSpell) {
+            if (effect && effect->baseEffect && effect->baseEffect->GetFormID() == mgef->GetFormID()) {
+                shouldDispell = true;
+                break;
+            } else {
+                // logger::debug("Returned early as the effect is not the same as the spell effect. {} - {}", mgefName, spellName);
+                shouldDispell = false;
+            }
+            logger::debug("Spell '{}' ({:#010x}) is already on player. Dispel it.", spellName,
+                          castInfo.spellItem.GetFormID());
+        }
+        if (!shouldDispell) {
+            logger::debug("Should not dispell summon spell. {} - {}", mgefName, spellName);
+            return;
+        }
+    } else if (isSummonSpell && !Config::GetSingleton().GetToggleKeyHeld()) {
+        logger::debug("Spell '{}' ({:#010x}) is a summon spell and key is not held. Don't dispel it.", spellName,
+                      castInfo.spellItem.GetFormID());
+        shouldDispell = false;
+    }
+
+    logger::info("alreadyOnPlayer: {}, shouldDispell: {}", castInfo.alreadyOnPlayer, shouldDispell);
+
+    // Dispell
+    if (shouldDispell) {
         logger::debug("Spell '{}' ({:#010x}) is already on player. Dispel it.", spellName,
                       castInfo.spellItem.GetFormID());
         activeEffect->Dispel(false);  // Remove the effect from the actor
@@ -258,6 +291,8 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
         return;
     }
 
+    RE::SpellItem& spellItem = castInfo.spellItem;
+
     const char* spellName = castInfo.spellItem.GetName();
     if (!spellName || spellName[0] == '\0') {
         spellName = "Unnamed Spell";
@@ -265,6 +300,55 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
 
     logger::debug("Checking applied effects for spell '{}' ({:#010x}) cast last frame...", spellName,
                   castInfo.spellItem.GetFormID());
+
+    bool isSummonSpell = false;
+
+    // TODO is this check needed?
+    if (castInfo.spellItem.effects.empty()) {
+        logger::debug("Spell {} has no effects.", spellItem.GetName());
+    } else {
+        logger::debug("Checking effects for spell {} ({:#010x}):", spellItem.GetName(), spellItem.GetFormID());
+        for (auto* effect : spellItem.effects) {
+            if (effect && effect->baseEffect) {
+                auto* mgef = effect->baseEffect;
+                RE::EffectSetting::Archetype archetype = mgef->data.archetype;
+                const char* mgefName = mgef->GetName();
+                if (!mgefName || mgefName[0] == '\0') mgefName = "Unnamed MGEF";
+
+                logger::trace("  - Effect: {} ({:#010x}), Archetype: {}", mgefName, mgef->GetFormID(),
+                              static_cast<int>(archetype));  // Log archetype value
+
+                switch (archetype) {
+                    case RE::EffectSetting::Archetype::kSummonCreature:
+                        logger::debug("    Found Summon Creature effect: {} ({:#010x})", mgefName, mgef->GetFormID());
+                        isSummonSpell = true;
+                        break;
+
+                    case RE::EffectSetting::Archetype::kReanimate:
+                        logger::debug("    Found Reanimate effect: {} ({:#010x})", mgefName, mgef->GetFormID());
+                        isSummonSpell = true;
+                        break;
+
+                    case RE::EffectSetting::Archetype::kCommandSummoned:
+                        logger::debug("    Found Command Summon effect: {} ({:#010x})", mgefName, mgef->GetFormID());
+                        isSummonSpell = true;
+                        break;
+
+                    default:
+                        break;
+                }
+            } else {
+                logger::warn("  - Found null effect or null baseEffect in spell {:#010x}", spellItem.GetFormID());
+            }
+        }
+    }
+
+    if (isSummonSpell && !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
+        logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early", spellItem.GetName(),
+                     spellItem.GetFormID());
+        return;
+    }
+    // --- End Summon Check ---
 
     bool isSpellSaved = SpellDataPersistence::IsSpellSaved(castInfo.spellItem.GetFormID());
     if (isSpellSaved) {
@@ -283,7 +367,7 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
             LogActiveEffectDetails(activeEffect);
 
             if (isSpellSaved) {
-                HandleSavedSpell(activeEffect, castInfo, spellName);
+                HandleSavedSpell(activeEffect, castInfo, spellName, isSummonSpell);
             } else {
                 HandleUnsavedSpell(activeEffect, castInfo);
             }

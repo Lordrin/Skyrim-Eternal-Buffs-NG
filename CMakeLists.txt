@@ -24,6 +24,30 @@ configure_file(
 	@ONLY
 )
 
+if(BUILD_SKYRIMAE)
+    message(STATUS "Building for Skyrim AE")
+	add_compile_definitions(SKYRIM_AE)
+	add_compile_definitions(SKYRIM_SUPPORT_AE)
+	set(CommonLibName "CommonLibSSE")
+	set(SkyrimPath ${SkyrimAEPath})
+	set(SkyrimVersion "Skyrim AE")
+	set(VERSION ${VERSION}.${AE_VERSION})
+elseif(BUILD_SKYRIMVR)
+    message(STATUS "Building for Skyrim VR")
+	add_compile_definitions(SKYRIMVR)
+	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+	set(CommonLibName "CommonLibVR")
+	set(SkyrimPath ${SkyrimVRPath})
+	set(SkyrimVersion "Skyrim VR")
+	set(VERSION ${VERSION}.${VR_VERSION})
+else()
+    message(STATUS "Building for Skyrim SE")
+	set(CommonLibName "CommonLibSSE")
+	set_from_environment(Skyrim64Path)
+	set(SkyrimPath ${Skyrim64Path})
+	set(SkyrimVersion "Skyrim SSE")
+endif()
+
 # If you're not using a mod manager, you probably want the SKSE plugin to go
 # inside of your Skyrim "Data" folder.
 #
@@ -51,6 +75,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 
 # Otherwise, you can set OUTPUT_FOLDER to any place you'd like :)
 set(OUTPUT_FOLDER "F:/MO2/mods/mods/InfinityBuffsNG")
+# set(SKYRIM_TARGET_RUNTIME "AE")
 
 find_package(spdlog CONFIG REQUIRED)
 
@@ -83,10 +108,10 @@ target_sources(
         "include/ConfigLoader.h" "src/ConfigLoader.cpp"
         "include/StringUtilities.h" "src/StringUtilities.cpp"
         "include/ConfigRules.h" "src/ConfigRules.cpp"
-        "include/Visitor.h"
         "include/TPPlayerInputEventHandler.h" "src/TPPlayerInputEventHandler.cpp"
         "include/Config.h" "src/Config.cpp"
         "include/ConfigParser.h" "src/ConfigParser.cpp"
+        "include/Hooks.h" "src/Hooks.cpp"
 )
 
 target_precompile_headers(

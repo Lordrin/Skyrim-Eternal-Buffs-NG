@@ -80,7 +80,7 @@ void LogAllActiveEffectsOnActor(RE::Actor& actor) {
         ++activeEffectsCount;
 
         RE::FormID effectFormID = activeEffect->GetBaseObject()->GetFormID();
-        logger::debug("  - Active Effect: {:#010x} - {}", effectFormID, activeEffect->GetBaseObject()->GetName());
+        logger::trace("  - Active Effect: {:#010x} - {}", effectFormID, activeEffect->GetBaseObject()->GetName());
 
         // Spell associated with the active effect
         RE::SpellItem* spellItem = activeEffect->spell->As<RE::SpellItem>();

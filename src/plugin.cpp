@@ -7,6 +7,7 @@
 #include "SpellCastEventHandler.h"
 #include "SpellDataPersistence.h"
 #include "TPPlayerInputEventHandler.h"
+#include <Hooks.h>
 
 // Template source: https://github.com/SkyrimDev/HelloWorld-using-CommonLibSSE-NG
 // See also: https://github.com/CharmedBaryon/CommonLibSSE-NG/wiki
@@ -34,6 +35,8 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 
     SKSE::Init(skse);
 
+    EBuffs::Hooks::Install();
+
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             ConfigLoader configLoader= ConfigLoader();
@@ -50,6 +53,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
                 logger::debug("PostLoadGame event received, but shouts and spells are disabled in the general rule.");
                 return;
             }
+            // EBuffs::Hooks::Install();
             SpellCastEventHandler::Register();
             TPPlayerInputEventHandler::Register();
             SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
