@@ -40,6 +40,7 @@ struct GeneralRule {
     bool enabled = true;
     bool shoutsEnabled = true;
     bool spellsEnabled = true;
+    bool summonsEnabled = true;
 };
 
 // namespace Config {

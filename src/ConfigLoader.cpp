@@ -8,7 +8,9 @@ void ConfigLoader::RegisterParsers() {
     sections["general"]["enable"] = Parser::ParseEnableRule;
     sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
     sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
+    sections["general"]["summons"] = Parser::ParseSummonsEnabledRule;
     sections["general"]["logginglevel"] = Parser::ParseLoggingLevelRule;
+    sections["general"]["keybinding"] = Parser::ParseKeybindingRule;
 }
 
 void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
