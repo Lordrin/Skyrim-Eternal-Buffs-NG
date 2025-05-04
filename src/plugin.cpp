@@ -35,8 +35,8 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 
     SKSE::Init(skse);
 
-    EBuffs::Hooks::Install();
-
+    // EBuffs::Hooks::Install();
+    
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             ConfigLoader configLoader= ConfigLoader();
@@ -46,6 +46,11 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
                 configLoader.LoadConfigFile(configLoader.directory / configFile);
             }
             Config::GetSingleton().Initialize();
+            // EBuffs::Hooks::Install();
+            // ActiveEffect::Hooks::Install();
+            // ActorMagicCaster::Hooks::Install();
+            // ActiveEffectReferenceEffectController::Hooks::Install();
+            // Book::Hooks::Install();
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
             if (!Config::GetSingleton().GetGeneralRule().enabled ||
