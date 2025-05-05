@@ -7,7 +7,6 @@
 
 #include "OrderedMap.h"
 #include "StringUtilities.h"
-// #include "ConfigParser.h"
 
 using RuleVariant = std::variant<std::string*, RE::TESForm*, bool*, uint32_t*, std::vector<std::string>*, float*>;
 
@@ -16,11 +15,12 @@ struct BaseRule {
     RE::TESForm* resolvedForm = nullptr;
     std::string nameFilter;
     bool isPermanentEnabled = true;
+    bool toggleable = true;
     std::vector<std::string> keywordFilter;
 
     OrderedMap<std::string, RuleVariant> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
-    bool ShouldApplyRuleToForm(RE::TESForm* form) const;
+    bool IsCorrectRuleToForm(RE::TESForm* form) const;
     std::string ToString() const;
 };
 
@@ -31,7 +31,7 @@ struct SpellRule : BaseRule {
     
     OrderedMap<std::string, RuleVariant> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&)>> GetParsers();
-    bool ShouldApplyRuleToSpell(RE::SpellItem* spellItem) const;
+    bool IsCorrectRuleToSpell(RE::SpellItem* spellItem) const;
     void ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) const;
     std::string ToString() const;
 };
@@ -41,16 +41,14 @@ struct GeneralRule {
     bool shoutsEnabled = true;
     bool spellsEnabled = true;
     bool summonsEnabled = true;
+    bool lesserPowersEnabled = true;
+    bool greaterPowersEnabled = true;
+    bool scrollsEnabled = true;
+
+    std::string ToString() const;
 };
 
-// namespace Config {
-//     const float permanentSpellDuration = 86313600.0f; // 999 days
-//     extern std::unordered_map<std::string, SpellRule> spellRules;
-//     std::unordered_map<std::string, SpellRule>& GetSpellRules();
-//     extern GeneralRule generalRule;
-//     extern std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
-//     std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap();
-//     extern uint32_t keyBinding = 43;
-//     extern bool toggleKeyHeld = false;
-//     void InitializeShoutSpellMap();
-// }
+SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect);
+bool GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule);
+
+bool GetSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule);

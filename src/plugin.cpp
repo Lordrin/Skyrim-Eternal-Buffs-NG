@@ -36,17 +36,24 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
 
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message *message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-            ConfigLoader configLoader= ConfigLoader();
+            ConfigLoader configLoader = ConfigLoader();
             std::vector configFiles = configLoader.GetConfigFileNames();
-            configLoader.LoadConfigFile("Data/SKSE/Plugins/InfinityBuffsNG.ini");
-            for (const auto& configFile : configFiles) {
+            configLoader.LoadConfigFile("Data/SKSE/Plugins/EternalBuffsNG.ini");
+            for (const auto &configFile : configFiles) {
                 configLoader.LoadConfigFile(configLoader.directory / configFile);
             }
-            Config::GetSingleton().Initialize();
+            auto generalRule = Config::GetSingleton().GetGeneralRule();
+            logger::info("Loaded config rules: {}", generalRule.ToString());
+            auto spellRules = Config::GetSingleton().GetSpellRules();
+            for (auto &spellRule : spellRules) {
+                logger::info("Loaded spell rule: {}", spellRule.first);
+                logger::info("{}", spellRule.second.ToString());
+            }
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
             if (!Config::GetSingleton().GetGeneralRule().enabled ||
-                (!Config::GetSingleton().GetGeneralRule().shoutsEnabled && !Config::GetSingleton().GetGeneralRule().spellsEnabled)) {
+                (!Config::GetSingleton().GetGeneralRule().shoutsEnabled &&
+                 !Config::GetSingleton().GetGeneralRule().spellsEnabled)) {
                 logger::debug("PostLoadGame event received, but shouts and spells are disabled in the general rule.");
                 return;
             }

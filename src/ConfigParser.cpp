@@ -74,7 +74,7 @@ namespace Parser {
                 if (resolvedForm) {
                     return resolvedForm;
                 } else {
-                    // Optional: Explicitly check common masters
+                    // Explicitly check common masters
                     resolvedForm = dataHandler->LookupForm(globalFormID, "Skyrim.esm");
                     if (resolvedForm) return resolvedForm;
                     resolvedForm = dataHandler->LookupForm(globalFormID, "Update.esm");
@@ -103,7 +103,7 @@ namespace Parser {
         std::vector<std::string> parts = Utilities::SplitString(configLine, '|');
 
         if (parts.empty()) {
-            return {};  // Return an empty SpellRule if no parts are found
+            return {};
         }
 
         // Construct the vector in the correct order
@@ -151,6 +151,7 @@ namespace Parser {
                          configFileName);
             level = spdlog::level::info;
         }
+        spdlog::set_level(level);
     }
 
     void ParseSummonsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
@@ -165,5 +166,16 @@ namespace Parser {
         } catch (std::exception& e) {
             logger::warn("Failed to parse keybinding value '{}': {}", value, e.what());
         }
+    }
+
+    void ParseLesserPowerEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
+        Config::GetSingleton().GetGeneralRule().lesserPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
+    }
+
+    void ParseGreaterPowerEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
+        Config::GetSingleton().GetGeneralRule().greaterPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
+    }
+    void ParseScrollsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
+        Config::GetSingleton().GetGeneralRule().scrollsEnabled = Utilities::ToLower(value) == "true" || value == "1";
     }
 }

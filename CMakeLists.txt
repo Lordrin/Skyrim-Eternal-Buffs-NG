@@ -8,7 +8,7 @@ cmake_minimum_required(VERSION 3.21)
 
 # [BEGIN set_project_name]
 # Set your project name. This will be the name of your SKSE .dll file.
-project(InfinityBuffsNG VERSION 1.1.0 LANGUAGES CXX)
+project(EternalBuffsNG VERSION 1.1.0 LANGUAGES CXX)
 
 # [END set_project_name]
 
@@ -50,7 +50,7 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 # endif()
 
 # Otherwise, you can set OUTPUT_FOLDER to any place you'd like :)
-set(OUTPUT_FOLDER "F:/MO2/mods/mods/InfinityBuffsNG")
+set(OUTPUT_FOLDER "G:/Skyrim/mods/mods/EternalBuffsNG")
 
 find_package(spdlog CONFIG REQUIRED)
 
@@ -84,8 +84,9 @@ target_sources(
         "include/StringUtilities.h" "src/StringUtilities.cpp"
         "include/ConfigRules.h" "src/ConfigRules.cpp"
         "include/TPPlayerInputEventHandler.h" "src/TPPlayerInputEventHandler.cpp"
-        "include/Config.h" "src/Config.cpp"
+        "include/Config.h"
         "include/ConfigParser.h" "src/ConfigParser.cpp"
+        "include/SpellUtilities.h" "src/SpellUtilities.cpp"
 )
 
 target_precompile_headers(

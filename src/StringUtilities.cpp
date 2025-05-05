@@ -26,7 +26,6 @@ namespace Utilities {
         }
         // Find the last non-whitespace character
         const auto last = sv.find_last_not_of(" \t\n\r\f\v");
-        // Return the subview
         return sv.substr(first, (last - first + 1));
     }
 

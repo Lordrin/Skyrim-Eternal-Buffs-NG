@@ -1,39 +1,6 @@
 #include "ConfigRules.h"
 
 #include "ConfigParser.h"
-// namespace Global {
-//     // The key is the name of the spell
-//     std::unordered_map<std::string, SpellRule> spellRules;
-
-//     std::unordered_map<std::string, SpellRule>& GetSpellRules() { return spellRules; }
-
-//     std::unordered_map<RE::FormID, RE::TESShout*> shoutSpellMap;
-
-//     std::unordered_map<RE::FormID, RE::TESShout*>& GetShoutSpellMap() { return shoutSpellMap; }
-
-//     void InitializeShoutSpellMap() {
-//         auto dataHandler = RE::TESDataHandler::GetSingleton();
-//         if (!dataHandler) {
-//             logger::error("Failed to get TESDataHandler.");
-//             return;
-//         }
-
-//         for (auto* shout : dataHandler->GetFormArray<RE::TESShout>()) {
-//             if (!shout) {
-//                 continue;
-//             }
-
-//             for (const auto& word : shout->variations) {
-//                 if (word.spell) {
-//                     shoutSpellMap[word.spell->GetFormID()] = shout;
-//                 }
-//             }
-//         }
-//     }
-
-//     GeneralRule generalRule;
-
-// }
 
 OrderedMap<std::string, RuleVariant> BaseRule::GetFields() {
     return {{"sourceFile", &sourceFile},
@@ -53,10 +20,21 @@ OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetPa
         {"nameFilter", [this](const std::string& value) { nameFilter = value; }},
         {"isPermanentEnabled",
          [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> isPermanentEnabled; }},
+        {"toggleable", [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> toggleable; }},
         {"keywordFilter", [this](const std::string& value) { keywordFilter = Utilities::SplitString(value, ','); }}};
 }
 
-bool BaseRule::ShouldApplyRuleToForm(RE::TESForm* form) const {
+/**
+ * @brief Determines if a given RE::TESForm should have the rule applied to it.
+ * @param form The RE::TESForm to check.
+ * @return True if the rule should be applied, false otherwise.
+ *
+ * This function checks if the given form matches the rule's resolvedForm or nameFilter.
+ * If the resolvedForm is null, it uses the nameFilter to check if the form's name matches.
+ * If the resolvedForm is not null, it checks if the form is the same as the resolvedForm
+ * or if the form's FormID is the same as the resolvedForm's FormID.
+ */
+bool BaseRule::IsCorrectRuleToForm(RE::TESForm* form) const {
     if (resolvedForm == nullptr) {
         logger::debug("ShouldApplyRuleToForm: resolvedForm is null. Checking by name");
         return nameFilter == form->GetName();
@@ -89,7 +67,7 @@ OrderedMap<std::string, std::function<void(const std::string&)>> SpellRule::GetP
     return baseParsers;
 }
 
-bool SpellRule::ShouldApplyRuleToSpell(RE::SpellItem* spellItem) const {
+bool SpellRule::IsCorrectRuleToSpell(RE::SpellItem* spellItem) const {
     if (!spellItem) {
         logger::warn("ShouldApplyRuleToSpell: SpellItem is null.");
         return false;
@@ -101,7 +79,7 @@ bool SpellRule::ShouldApplyRuleToSpell(RE::SpellItem* spellItem) const {
     std::span<RE::BGSKeyword*> keywords = spellItem->GetKeywords();
 
     // check if keyworkFilter is empty or if any of the keywords match
-    bool isRightSpell = BaseRule::ShouldApplyRuleToForm(spellItem);
+    bool isRightSpell = BaseRule::IsCorrectRuleToForm(spellItem);
     return isRightSpell && (keywordFilter.empty() ||
                             std::any_of(keywordFilter.begin(), keywordFilter.end(), [&](const std::string& keyword) {
                                 return std::any_of(keywords.begin(), keywords.end(), [&](RE::BGSKeyword* spellKeyword) {
@@ -125,7 +103,8 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
     if (isPermanentEnabled) {
         logger::debug("ApplyRulesToSpell: Setting duration to permanent for effect: {:#010x} ({})",
                       activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName());
-        activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();  // Set the duration to permanentSpellDuration;
+        activeEffect->duration =
+            Config::GetSingleton().GetPermanentSpellDuration();  // Set the duration to permanentSpellDuration;
     }
 
     // check if durationfilter is not set to default
@@ -147,4 +126,57 @@ std::string SpellRule::ToString() const {
                        durationFilter, minDurationFilter, magnitudeFilter, sourceFile,
                        resolvedForm ? resolvedForm->GetName() : "nullptr", nameFilter, isPermanentEnabled,
                        Utilities::Join(keywordFilter, ", "));
+}
+
+SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
+    auto spellRuleIt =
+        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+        RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
+        if (spellItem && spellRuleIt->second.IsCorrectRuleToSpell(spellItem)) {
+            return spellRuleIt->second;
+        }
+    }
+    return SpellRule{};
+}
+
+/**
+ * @brief Finds the SpellRule for an active effect.
+ * @param activeEffect The active effect to find the SpellRule for.
+ * @param spellRule The SpellRule to populate if found.
+ * @return True if the SpellRule was found, false otherwise.
+ * @note This function searches for the SpellRule by the full name of the
+ * active effect's spell. If found, the SpellRule is copied into the spellRule
+ * parameter.
+ */
+bool GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule) {
+    auto spellRuleIt =
+        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+        spellRule = spellRuleIt->second;
+        RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
+        if (spellItem && spellRule.IsCorrectRuleToSpell(spellItem)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool GetSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
+    auto spellRuleIt =
+        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(spellItem->GetFullName()));
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+        spellRule = spellRuleIt->second;
+        if (spellRule.IsCorrectRuleToSpell(spellItem)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+std::string GeneralRule::ToString() const {
+    return fmt::format(
+        "GeneralRule: enabled = {}, shoutsEnabled = {}, spellsEnabled = {}, summonsEnabled = {}, "
+        "lesserPowersEnabled = {}, greaterPowersEnabled = {}",
+        enabled, shoutsEnabled, spellsEnabled, summonsEnabled, lesserPowersEnabled, greaterPowersEnabled);
 }

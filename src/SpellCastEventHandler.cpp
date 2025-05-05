@@ -1,5 +1,5 @@
 #include "SpellCastEventHandler.h"
-
+#include "SpellUtilities.h"
 #include "SpellApplication.h"
 #include "SpellDataPersistence.h"
 #include "SpellLogging.h"
@@ -33,28 +33,42 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
         return RE::BSEventNotifyControl::kContinue;
     }
 
-    bool isShout = false;
+    auto& config = Config::GetSingleton().GetGeneralRule();
 
-    if (!Config::GetSingleton().GetGeneralRule().shoutsEnabled || !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
-        logger::debug("Shouts are enabled in the general rule.");
-        auto it = Config::GetSingleton().GetShoutSpellMap().find(spellItem->GetFormID());
-        if (it != Config::GetSingleton().GetShoutSpellMap().end()) {
-            RE::TESShout* shoutFound = it->second;
-            const char* shoutName = shoutFound->GetName();
-            logger::debug("Spell is part of shout:");
-            logger::debug("  Shout Name: {}", shoutName ? shoutName : "Unnamed Shout");
-            logger::debug("  Shout FormID: {:#010x}", shoutFound->GetFormID());
-
-            isShout = true;
-        }
-    }
-
-    if (Config::GetSingleton().GetGeneralRule().shoutsEnabled && isShout) {
-        logger::debug("Shouts are disabled in the general rule.");
+    logger::debug("Spell Type: {}", static_cast<int>(spellItem->data.spellType));
+    logger::debug("Spell Delivery: {}", static_cast<int>(spellItem->data.delivery));
+    logger::debug("Spell Casting Type: {}", static_cast<int>(spellItem->data.castingType));
+    
+    if (!config.shoutsEnabled && IsShout(spellItem)) {
+        logger::debug("Shouts are disabled in the general rule. {}", spellItem->GetName());
         return RE::BSEventNotifyControl::kContinue;
     }
-    if (!Config::GetSingleton().GetGeneralRule().spellsEnabled && !isShout) {
-        logger::debug("Spells are disabled in the general rule.");
+    if (!config.lesserPowersEnabled && IsLesserPower(spellItem)) {
+        logger::debug("Lesser Powers are disabled in the general rule. {}", spellItem->GetName());
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if (!config.greaterPowersEnabled && IsGreaterPower(spellItem)) {
+        logger::debug("Greater Powers are disabled in the general rule. {}", spellItem->GetName());
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if (!config.summonsEnabled && IsSummon(spellItem)) {
+        logger::debug("Summons are disabled in the general rule. {}", spellItem->GetName());
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if (!config.spellsEnabled && IsSpell(spellItem)) {
+        logger::debug("Spells are disabled in the general rule. {}", spellItem->GetName());
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if(!config.scrollsEnabled && IsScroll(spellItem)) {
+        logger::debug("Scrolls are disabled in the general rule. {}", spellItem->GetName());
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if(IsConcentration(spellItem)) {
+        logger::debug("Concentrations are disabled. {}", spellItem->GetName());
+        return RE::BSEventNotifyControl::kContinue;
+    }
+    if(spellItem->data.flags & RE::SpellItem::SpellFlag::kFoodItem) {
+        logger::debug("Food Items are disabled. {}", spellItem->GetName());
         return RE::BSEventNotifyControl::kContinue;
     }
 
@@ -62,12 +76,11 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     logger::debug("Player casting spell:");
     logger::debug("  Name: {}", spellName);
     logger::debug("  FormID: {:#010x}", spellItem->GetFormID());
-
-
-    logger::info("istoggled {}", Config::GetSingleton().GetToggleKeyHeld());
+    logger::debug("  istoggled key held: {}", Config::GetSingleton().GetToggleKeyHeld());
 
     if (Config::GetSingleton().GetToggleKeyHeld()) {
-        logger::info("istoggled {} and is not running {}", Config::GetSingleton().GetToggleKeyHeld(), !playerActor->IsRunning());
+        logger::info("istoggled {} and is not running {}", Config::GetSingleton().GetToggleKeyHeld(),
+                     !playerActor->IsRunning());
     }
 
     auto player = RE::PlayerCharacter::GetSingleton();
@@ -76,15 +89,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     }
 
     LogAllActiveEffectsOfSpell(spellItem);  // Log all active effects of the spell
-    // --- Log MGEF Keywords ---
     LogKeywords(spellItem, "      ");  // Pass mgef and appropriate indent
-
-    if (spellItem->data.castingType == RE::MagicSystem::CastingType::kConcentration) {
-        if (!spellName || spellName[0] == '\0') spellName = "Unnamed Spell";
-        logger::debug("Player casting concentration spell '{}' ({:#010x}). Skipping further checks.", spellName,
-                      spellItem->GetFormID());
-        return RE::BSEventNotifyControl::kContinue;  // Exit early for concentration spells
-    }
 
     auto magicTarget = playerActor->GetMagicTarget();
     if (!magicTarget) {
@@ -107,6 +112,13 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
             logger::debug("Spell {} is already active. Will dispell next frame",
                           activeEffect->GetBaseObject()->GetName());
             alreadyOnPlayer = true;
+            // Check if this spell should be ignored
+            SpellRule spellRule;
+            if (GetSpellRuleForActiveEffect(activeEffect, spellRule)) {
+                if(!spellRule.isPermanentEnabled && !spellRule.toggleable) {
+                    return RE::BSEventNotifyControl::kContinue;
+                }
+            }
             break;
         }
     }
@@ -114,12 +126,12 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     RE::ActorHandle playerHandle = playerActor->GetHandle();
 
     // Package the data
-    SpellCastInfo info{*spellItem, playerHandle, alreadyOnPlayer};
+    SpellCastInfo info{spellItem, playerHandle, alreadyOnPlayer};
 
-    // Schedule the CheckAppliedEffects function to run on the next UI update cycle
+    // Schedule the ConvertToPermanentEffectOnPlayer function to run on the next UI update cycle
     auto taskInterface = SKSE::GetTaskInterface();
     if (taskInterface) {
-        taskInterface->AddUITask([info]() {  // capture 'info'
+        taskInterface->AddUITask([info]() {
             ConvertToPermanentEffectOnPlayer(info);
         });
     } else {

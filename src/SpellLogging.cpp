@@ -98,8 +98,8 @@ void LogAllActiveEffectsOnActor(RE::Actor& actor) {
                     logger::debug("  - Active effect associated with ability: {:#010x} - {}", ability->GetFormID(),
                                   ability->GetName());
                 } else {
-                    logger::warn("    - No associated spell, perk, or ability found for active effect: {:#010x}",
-                                 effectFormID);
+                    logger::warn("    - No associated spell, perk, found for active effect: {:#010x} - {:#010x}",
+                                 effectFormID, sourceForm->GetFormID());
                 }
             } else {
                 logger::warn("    - No source form found for active effect: {:#010x}", effectFormID);

@@ -34,4 +34,7 @@ namespace Parser {
     void ParseLoggingLevelRule(const std::string& value, const std::string& configFileName);
     void ParseSummonsEnabledRule(const std::string& value, const std::string& configFileName);
     void ParseKeybindingRule(const std::string& value, const std::string& configFileName);
+    void ParseLesserPowerEnabledRule(const std::string& value, const std::string& configFileName);
+    void ParseGreaterPowerEnabledRule(const std::string& value, const std::string& configFileName);
+    void ParseScrollsEnabledRule(const std::string& value, const std::string& configFileName);
 }

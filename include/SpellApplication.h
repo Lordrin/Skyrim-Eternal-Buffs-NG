@@ -7,7 +7,7 @@
 
 // Simple structure or use std::pair/tuple to pass data to the task
 struct SpellCastInfo {
-    RE::SpellItem& spellItem;
+    RE::SpellItem* spellItem;
     RE::ActorHandle playerHandle;
     bool alreadyOnPlayer;
 };

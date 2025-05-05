@@ -9,8 +9,12 @@ void ConfigLoader::RegisterParsers() {
     sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
     sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
     sections["general"]["summons"] = Parser::ParseSummonsEnabledRule;
+    sections["general"]["lesserpowers"] = Parser::ParseLesserPowerEnabledRule;
+    sections["general"]["greaterpowers"] = Parser::ParseGreaterPowerEnabledRule;
+    sections["general"]["scrolls"] = Parser::ParseScrollsEnabledRule;
     sections["general"]["logginglevel"] = Parser::ParseLoggingLevelRule;
     sections["general"]["keybinding"] = Parser::ParseKeybindingRule;
+
 }
 
 void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
@@ -103,7 +107,7 @@ std::vector<std::string> ConfigLoader::GetConfigFileNames() {
     std::vector<std::string> configFiles;
     for (const auto& entry : std::filesystem::directory_iterator(directory)) {
         if (entry.path().extension() == ".ini" && entry.is_regular_file() &&
-            entry.path().filename().string().ends_with("_UBUFFS.ini")) {
+            entry.path().filename().string().ends_with("_EBUFFS.ini")) {
             configFiles.push_back(entry.path().filename().string());
         }
     }

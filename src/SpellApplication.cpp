@@ -1,4 +1,6 @@
 #include "SpellApplication.h"
+#include <SpellUtilities.h>
+
 
 /**
  * @brief Applies configuration rules to an active effect.
@@ -12,14 +14,10 @@ bool ApplyConfigRulesToActiveEffect(RE::ActiveEffect* activeEffect) {
         return false;
     }
 
-    auto spellRuleIt =
-        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
-    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
-        SpellRule spellRule = spellRuleIt->second;
-        spellRule.ShouldApplyRuleToSpell(activeEffect->spell->As<RE::SpellItem>());
+    SpellRule spellRule;
+    if (GetSpellRuleForActiveEffect(activeEffect, spellRule)) {
         spellRule.ApplySpellRulesToActiveEffect(activeEffect);
         return true;
-
     } else {
         logger::debug("ApplyConfigRulesToSpell: Spell {} not found in rules.", activeEffect->spell->GetName());
         return false;
@@ -197,7 +195,6 @@ void LogActiveEffectDetails(RE::ActiveEffect* activeEffect) {
     logger::debug("      Elapsed Time: {:.2f}s", activeEffect->elapsedSeconds);
 }
 
-// Function to handle saved spells
 void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo, const char* spellName,
                       bool isSummonSpell) {
     RE::EffectSetting* mgef = activeEffect->GetBaseObject();
@@ -207,24 +204,22 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
     }
 
     bool shouldDispell = castInfo.alreadyOnPlayer;
+    SpellRule spellRule = GetSpellRuleForActiveEffect(activeEffect);
+    RE::SpellItem* spellItem = castInfo.spellItem;
 
     if (isSummonSpell && Config::GetSingleton().GetToggleKeyHeld()) {
         // Dispell if the key is held down
-        logger::debug("Spell '{}' ({:#010x}) is a summon spell and key is held. Dispel it.", spellName,
-                      castInfo.spellItem.GetFormID());
-        const auto activeEffectsOfSpell = castInfo.spellItem.effects;
-        // This is so only the same summon is dispelled.
+        logger::debug("Spell '{}' ({:#010x}) is a summon spell and key is held. Dispel it.", spellName, spellItem->GetFormID());
+        const auto activeEffectsOfSpell = spellItem->effects;
         for (auto& effect : activeEffectsOfSpell) {
             if (effect && effect->baseEffect && effect->baseEffect->GetFormID() == mgef->GetFormID()) {
                 shouldDispell = true;
                 break;
             } else {
-                // logger::debug("Returned early as the effect is not the same as the spell effect. {} - {}", mgefName,
-                // spellName);
                 shouldDispell = false;
             }
             logger::debug("Spell '{}' ({:#010x}) is already on player. Dispel it.", spellName,
-                          castInfo.spellItem.GetFormID());
+                          spellItem->GetFormID());
         }
         if (!shouldDispell) {
             logger::debug("Should not dispell summon spell. {} - {}", mgefName, spellName);
@@ -232,43 +227,41 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
         }
     } else if (isSummonSpell && !Config::GetSingleton().GetToggleKeyHeld()) {
         logger::debug("Spell '{}' ({:#010x}) is a summon spell and key is not held. Don't dispel it.", spellName,
-                      castInfo.spellItem.GetFormID());
+                      spellItem->GetFormID());
         shouldDispell = false;
     }
 
     logger::info("alreadyOnPlayer: {}, shouldDispell: {}", castInfo.alreadyOnPlayer, shouldDispell);
 
     // Dispell
-    if (shouldDispell) {
+    if (shouldDispell && spellRule.toggleable) {
         logger::debug("Spell '{}' ({:#010x}) is already on player. Dispel it.", spellName,
-                      castInfo.spellItem.GetFormID());
+                      spellItem->GetFormID());
         activeEffect->Dispel(false);  // Remove the effect from the actor
-        SpellDataPersistence::RemoveSpellFromSave(castInfo.spellItem.GetFormID());
-        logger::debug("Spell '{}' ({:#010x}) is no longer saved.", spellName, castInfo.spellItem.GetFormID());
+        SpellDataPersistence::RemoveSpellFromSave(spellItem->GetFormID());
+        logger::debug("Spell '{}' ({:#010x}) is no longer saved.", spellName, spellItem->GetFormID());
     } else {
         // The spell is already cached but has been dispelled already
         bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
         if (!appliedConfig) {
             activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
         }
-        logger::debug("Spell '{}' ({:#010x}) is not on player. Apply it.", spellName, castInfo.spellItem.GetFormID());
+        logger::debug("Spell '{}' ({:#010x}) is not on player. Apply it.", spellName, spellItem->GetFormID());
     }
 }
 
-// Helper function to check if an active effect is temporary
 bool IsTemporaryEffect(RE::ActiveEffect* activeEffect) {
     return activeEffect->duration > 0.0f && activeEffect->duration < Config::GetSingleton().GetPermanentSpellDuration();
 }
-// Function to handle unsaved spells
+
 void HandleUnsavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo) {
     bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
     if (!appliedConfig && IsTemporaryEffect(activeEffect)) {
         activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
     }
-    SpellDataPersistence::CacheSpellForSaving(&castInfo.spellItem);
+    SpellDataPersistence::CacheSpellForSaving(castInfo.spellItem);
 }
 
-// Main function to convert effects to permanent on the player
 void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
     if (!castInfo.playerHandle) {
         logger::warn("CheckAppliedEffects: Player handle is null.");
@@ -292,68 +285,32 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
         return;
     }
 
-    RE::SpellItem& spellItem = castInfo.spellItem;
+    RE::SpellItem* spellItem = castInfo.spellItem;
 
-    const char* spellName = castInfo.spellItem.GetName();
+    if (!spellItem) {
+        logger::warn("CheckAppliedEffects: SpellItem became null during the UI update.");
+        return;
+    }
+
+    const char* spellName = spellItem->GetName();
     if (!spellName || spellName[0] == '\0') {
         spellName = "Unnamed Spell";
     }
 
     logger::debug("Checking applied effects for spell '{}' ({:#010x}) cast last frame...", spellName,
-                  castInfo.spellItem.GetFormID());
+                  spellItem->GetFormID());
 
-    bool isSummonSpell = false;
-
-    // TODO is this check needed?
-    if (castInfo.spellItem.effects.empty()) {
-        logger::debug("Spell {} has no effects.", spellItem.GetName());
-    } else {
-        logger::debug("Checking effects for spell {} ({:#010x}):", spellItem.GetName(), spellItem.GetFormID());
-        for (auto* effect : spellItem.effects) {
-            if (effect && effect->baseEffect) {
-                auto* mgef = effect->baseEffect;
-                RE::EffectSetting::Archetype archetype = mgef->data.archetype;
-                const char* mgefName = mgef->GetName();
-                if (!mgefName || mgefName[0] == '\0') mgefName = "Unnamed MGEF";
-
-                logger::trace("  - Effect: {} ({:#010x}), Archetype: {}", mgefName, mgef->GetFormID(),
-                              static_cast<int>(archetype));  // Log archetype value
-
-                switch (archetype) {
-                    case RE::EffectSetting::Archetype::kSummonCreature:
-                        logger::debug("    Found Summon Creature effect: {} ({:#010x})", mgefName, mgef->GetFormID());
-                        isSummonSpell = true;
-                        break;
-
-                    case RE::EffectSetting::Archetype::kReanimate:
-                        logger::debug("    Found Reanimate effect: {} ({:#010x})", mgefName, mgef->GetFormID());
-                        isSummonSpell = true;
-                        break;
-
-                    case RE::EffectSetting::Archetype::kCommandSummoned:
-                        logger::debug("    Found Command Summon effect: {} ({:#010x})", mgefName, mgef->GetFormID());
-                        isSummonSpell = true;
-                        break;
-
-                    default:
-                        break;
-                }
-            } else {
-                logger::warn("  - Found null effect or null baseEffect in spell {:#010x}", spellItem.GetFormID());
-            }
-        }
-    }
+    bool isSummonSpell = IsSummonSpell(spellItem);
 
     if (isSummonSpell && !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
-        logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early", spellItem.GetName(),
-                     spellItem.GetFormID());
+        logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early", spellItem->GetName(),
+                     spellItem->GetFormID());
         return;
     }
-    // --- End Summon Check ---
 
-    bool isSpellSaved = SpellDataPersistence::IsSpellSaved(castInfo.spellItem.GetFormID());
+    bool isSpellSaved = SpellDataPersistence::IsSpellSaved(spellItem->GetFormID());
     if (isSpellSaved) {
-        logger::debug("Spell '{}' ({:#010x}) is saved.", spellName, castInfo.spellItem.GetFormID());
+        logger::debug("Spell '{}' ({:#010x}) is saved.", spellName, spellItem->GetFormID());
     }
 
     for (RE::ActiveEffect* activeEffect : *activeEffects) {
@@ -362,7 +319,7 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
             continue;
         }
 
-        if (activeEffect->spell->GetFormID() == castInfo.spellItem.GetFormID() &&
+        if (activeEffect->spell->GetFormID() == spellItem->GetFormID() &&
             activeEffect->caster == castInfo.playerHandle && activeEffect->target->MagicTargetIsActor() &&
             activeEffect->target == player->GetMagicTarget()) {
             LogActiveEffectDetails(activeEffect);
