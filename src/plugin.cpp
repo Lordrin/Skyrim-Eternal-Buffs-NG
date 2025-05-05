@@ -57,8 +57,8 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
             }
             SpellCastEventHandler::Register();
             TPPlayerInputEventHandler::Register();
-            SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
             ApplyAllSavedPermanentSpellsToPlayer();
+            SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
         }
     });
 

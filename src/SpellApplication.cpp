@@ -1,6 +1,6 @@
 #include "SpellApplication.h"
-#include <SpellUtilities.h>
 
+#include <SpellUtilities.h>
 
 /**
  * @brief Applies configuration rules to an active effect.
@@ -197,56 +197,95 @@ void LogActiveEffectDetails(RE::ActiveEffect* activeEffect) {
 
 void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo, const char* spellName,
                       bool isSummonSpell) {
+    // --- Initial Setup ---
     RE::EffectSetting* mgef = activeEffect->GetBaseObject();
+    if (!mgef) {
+        logger::error("HandleSavedSpell: ActiveEffect has no base MGEF!");
+        return;
+    }
     const char* mgefName = mgef->GetName();
     if (!mgefName || mgefName[0] == '\0') {
-        mgefName = "Unnamed Effect";
+        mgefName = "Unnamed Effect";  // Use placeholder if name is missing
     }
 
-    bool shouldDispell = castInfo.alreadyOnPlayer;
-    SpellRule spellRule = GetSpellRuleForActiveEffect(activeEffect);
     RE::SpellItem* spellItem = castInfo.spellItem;
-
-    if (isSummonSpell && Config::GetSingleton().GetToggleKeyHeld()) {
-        // Dispell if the key is held down
-        logger::debug("Spell '{}' ({:#010x}) is a summon spell and key is held. Dispel it.", spellName, spellItem->GetFormID());
-        const auto activeEffectsOfSpell = spellItem->effects;
-        for (auto& effect : activeEffectsOfSpell) {
-            if (effect && effect->baseEffect && effect->baseEffect->GetFormID() == mgef->GetFormID()) {
-                shouldDispell = true;
-                break;
-            } else {
-                shouldDispell = false;
-            }
-            logger::debug("Spell '{}' ({:#010x}) is already on player. Dispel it.", spellName,
-                          spellItem->GetFormID());
-        }
-        if (!shouldDispell) {
-            logger::debug("Should not dispell summon spell. {} - {}", mgefName, spellName);
-            return;
-        }
-    } else if (isSummonSpell && !Config::GetSingleton().GetToggleKeyHeld()) {
-        logger::debug("Spell '{}' ({:#010x}) is a summon spell and key is not held. Don't dispel it.", spellName,
-                      spellItem->GetFormID());
-        shouldDispell = false;
+    if (!spellItem) {
+        logger::error("HandleSavedSpell: castInfo contains null spellItem!");
+        return;
     }
 
-    logger::info("alreadyOnPlayer: {}, shouldDispell: {}", castInfo.alreadyOnPlayer, shouldDispell);
+    SpellRule spellRule = GetSpellRuleForActiveEffect(activeEffect);  // Get rules specific to this effect
 
-    // Dispell
-    if (shouldDispell && spellRule.toggleable) {
-        logger::debug("Spell '{}' ({:#010x}) is already on player. Dispel it.", spellName,
-                      spellItem->GetFormID());
-        activeEffect->Dispel(false);  // Remove the effect from the actor
-        SpellDataPersistence::RemoveSpellFromSave(spellItem->GetFormID());
-        logger::debug("Spell '{}' ({:#010x}) is no longer saved.", spellName, spellItem->GetFormID());
-    } else {
-        // The spell is already cached but has been dispelled already
-        bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
-        if (!appliedConfig) {
-            activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
+    // --- Determine Required Action ---
+    SpellHandlingAction finalAction;
+    bool shouldConsiderDispel = castInfo.alreadyOnPlayer;  // Start with whether it was saved previously
+
+    // Specific logic override for Summon Spells based on toggle key
+    if (isSummonSpell) {
+        bool keyHeld = Config::GetSingleton().GetToggleKeyHeld();
+        if (keyHeld) {
+            // If it's a summon and the key is held, we INTEND to dispel it, overriding 'alreadyOnPlayer'.
+            // The original loop checking effect->baseEffect seems overly complex if we assume
+            // activeEffect is indeed an instance of an effect from spellItem.
+            logger::debug("Summon spell '{}' ({:#010x}) and toggle key Held. Marking for potential dispel.", spellName,
+                          spellItem->GetFormID());
+            shouldConsiderDispel = true;
+        } else {
+            // If it's a summon and the key is NOT held, we explicitly DO NOT want to dispel it.
+            logger::debug("Summon spell '{}' ({:#010x}) and toggle key Not Held. Marking to keep.", spellName,
+                          spellItem->GetFormID());
+            shouldConsiderDispel = false;
         }
-        logger::debug("Spell '{}' ({:#010x}) is not on player. Apply it.", spellName, spellItem->GetFormID());
+    }
+
+    // Final decision: Can we actually dispel based on the rule?
+    if (shouldConsiderDispel && spellRule.toggleable) {
+        // We want to dispel (either originally on player or summon+key) AND the rule allows toggling.
+        finalAction = SpellHandlingAction::kDispel;
+        logger::debug("Determined Action for '{}': Dispel (Toggleable: {}, Initially Considered Dispel: {})", spellName,
+                     spellRule.toggleable, shouldConsiderDispel);
+    } else {
+        // We either didn't want to dispel initially, OR we wanted to but the rule prevents toggling it off.
+        finalAction = SpellHandlingAction::kApplyConfig;
+        if (shouldConsiderDispel && !spellRule.toggleable) {
+            logger::debug(
+                "Determined Action for '{}': Apply Config (Toggleable: {}, Initially Considered Dispel: {}, Rule "
+                "prevents toggle off)",
+                spellName, spellRule.toggleable, shouldConsiderDispel);
+        } else {
+            logger::debug("Determined Action for '{}': Apply Config (Toggleable: {}, Initially Considered Dispel: {})",
+                         spellName, spellRule.toggleable, shouldConsiderDispel);
+        }
+    }
+
+    // --- Execute Action ---
+    bool appliedConfig = false;
+    switch (finalAction) {
+        case SpellHandlingAction::kDispel:
+            logger::debug("Executing Dispel for spell '{}' ({:#010x}).", spellName, spellItem->GetFormID());
+            activeEffect->Dispel(false);  // false = No Hit Effects/Sound
+            SpellDataPersistence::RemoveSpellFromSave(spellItem->GetFormID());
+            logger::debug("Spell '{}' ({:#010x}) dispelled and removed from save.", spellName, spellItem->GetFormID());
+            break;
+
+        case SpellHandlingAction::kApplyConfig:
+            logger::debug("Executing Apply Config / Keep for spell '{}' ({:#010x}).", spellName,
+                          spellItem->GetFormID());
+            // Try applying specific rules first
+            appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
+            // If no specific rule applied, set the default permanent duration
+            if (!appliedConfig) {
+                activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
+                logger::debug("No specific config rule applied, setting default duration {} for '{}'.",
+                              activeEffect->duration, spellName);
+            } else {
+                logger::debug("Specific config rule applied to '{}'.", spellName);
+            }
+            break;
+
+        default:
+            logger::debug("Unhandled SpellHandlingAction for spell '{}'", spellName);
+            break;
     }
 }
 
@@ -303,8 +342,8 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
     bool isSummonSpell = IsSummonSpell(spellItem);
 
     if (isSummonSpell && !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
-        logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early", spellItem->GetName(),
-                     spellItem->GetFormID());
+        logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early",
+                     spellItem->GetName(), spellItem->GetFormID());
         return;
     }
 

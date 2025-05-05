@@ -12,6 +12,13 @@ struct SpellCastInfo {
     bool alreadyOnPlayer;
 };
 
+// Define the possible outcomes for handling the spell effect
+enum class SpellHandlingAction {
+    kDispel,         // Dispel the effect and remove from persistence
+    kApplyConfig,    // Keep the effect, apply duration/config rules
+    kNoActionNeeded  // Take no action (e.g., summon spell + key not held, handled implicitly)
+};
+
 void DispellAllSavedSpellsFromActor(RE::Actor& actor);
 void DispellAllSavedSpellsFromPlayer();
 
