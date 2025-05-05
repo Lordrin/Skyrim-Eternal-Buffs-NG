@@ -51,9 +51,7 @@ SKSEPluginLoad(const SKSE::LoadInterface *skse) {
             }
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
-            if (!Config::GetSingleton().GetGeneralRule().enabled ||
-                (!Config::GetSingleton().GetGeneralRule().shoutsEnabled &&
-                 !Config::GetSingleton().GetGeneralRule().spellsEnabled)) {
+            if (!Config::GetSingleton().GetGeneralRule().enabled) {
                 logger::debug("PostLoadGame event received, but shouts and spells are disabled in the general rule.");
                 return;
             }
