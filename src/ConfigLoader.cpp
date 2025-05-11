@@ -5,15 +5,20 @@ ConfigLoader::ConfigLoader() { RegisterParsers(); }
 void ConfigLoader::RegisterParsers() {
     sections["spells"]["spell"] = Parser::ParseSpellRule;
 
-    sections["general"]["enable"] = Parser::ParseEnableRule;
-    sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
-    sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
-    sections["general"]["summons"] = Parser::ParseSummonsEnabledRule;
-    sections["general"]["lesserpowers"] = Parser::ParseLesserPowerEnabledRule;
-    sections["general"]["greaterpowers"] = Parser::ParseGreaterPowerEnabledRule;
-    sections["general"]["scrolls"] = Parser::ParseScrollsEnabledRule;
-    sections["general"]["logginglevel"] = Parser::ParseLoggingLevelRule;
-    sections["general"]["keybinding"] = Parser::ParseKeybindingRule;
+    std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>> generalParsers = Parser::ParseGeneralSection();
+    sections["general"] = generalParsers;
+
+    // sections["general"] = Parser::ParseGeneralSection;
+
+    // sections["general"]["enable"] = Parser::ParseEnableRule;
+    // sections["general"]["shouts"] = Parser::ParseShoutsEnabledRule;
+    // sections["general"]["spells"] = Parser::ParseSpellsEnabledRule;
+    // sections["general"]["summons"] = Parser::ParseSummonsEnabledRule;
+    // sections["general"]["lesserpowers"] = Parser::ParseLesserPowerEnabledRule;
+    // sections["general"]["greaterpowers"] = Parser::ParseGreaterPowerEnabledRule;
+    // sections["general"]["scrolls"] = Parser::ParseScrollsEnabledRule;
+    // sections["general"]["logginglevel"] = Parser::ParseLoggingLevelRule;
+    // sections["general"]["keybinding"] = Parser::ParseKeybindingRule;
 
 }
 

@@ -174,6 +174,61 @@ bool GetSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
     return false;
 }
 
+OrderedMap<std::string, bool*> GeneralRule::GetFields() {
+    return {
+        {"enabled", &enabled},
+        {"shoutsEnabled", &shoutsEnabled},
+        {"spellsEnabled", &spellsEnabled},
+        {"summonsEnabled", &summonsEnabled},
+        {"lesserPowersEnabled", &lesserPowersEnabled},
+        {"greaterPowersEnabled", &greaterPowersEnabled},
+        {"scrollsEnabled", &scrollsEnabled},
+    };
+}
+
+OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GeneralRule::GetParsers() {
+    return {
+        {"enable", [this](const std::string& value,
+                          const std::string&) { enabled = Utilities::ToLower(value) == "true" || value == "1"; }},
+        {"shouts", [this](const std::string& value,
+                          const std::string&) { shoutsEnabled = Utilities::ToLower(value) == "true" || value == "1"; }},
+        {"spells", [this](const std::string& value,
+                          const std::string&) { spellsEnabled = Utilities::ToLower(value) == "true" || value == "1"; }},
+        {"summons",
+         [this](const std::string& value, const std::string&) {
+             summonsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+         }},
+        {"lesserPowers",
+         [this](const std::string& value, const std::string&) {
+             lesserPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
+         }},
+        {"greaterPowers",
+         [this](const std::string& value, const std::string&) {
+             greaterPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
+         }},
+        {"scrolls",
+         [this](const std::string& value, const std::string&) {
+             scrollsEnabled = Utilities::ToLower(value) == "true" || value == "1";
+         }},
+    };
+}
+
+// std::vector<SpellDisableCheck> GeneralRule::GetChecks() const {
+//     return {
+//         {!&shoutsEnabled, IsShout, "Shouts"}, {!&lesserPowersEnabled, IsLesserPower, "Lesser Powers"},
+//             {!&greaterPowersEnabled, IsGreaterPower, "Greater Powers"}, {!&summonsEnabled, IsSummon, "Summons"},
+//             {!&spellsEnabled, IsSpell,
+//              "Spells"},  // Make sure IsSpell correctly identifies *only* regular spells if needed
+//             {!&scrollsEnabled, IsScroll, "Scrolls"},
+//             {true, IsConcentration, "Concentration spells"},  // Always disabled if concentration
+//             {true,
+//              [](RE::SpellItem* si) {  // Lambda for flags
+//                  return si && (si->data.flags & RE::SpellItem::SpellFlag::kFoodItem);
+//              },
+//              "Food items"}  // Always disabled if food flag is set
+//     };
+// }
+
 std::string GeneralRule::ToString() const {
     return fmt::format(
         "GeneralRule: enabled = {}, shoutsEnabled = {}, spellsEnabled = {}, summonsEnabled = {}, "

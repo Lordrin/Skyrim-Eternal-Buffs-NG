@@ -154,6 +154,12 @@ namespace Parser {
         spdlog::set_level(level);
     }
 
+    std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>> ParseGeneralSection() {
+        auto mergedConfigRules = Config::GetSingleton().GetGeneralRule().GetParsers();
+        mergedConfigRules.Concatenate(Config::GetSingleton().GetParsers());
+        return mergedConfigRules.GetMap();
+    }
+
     void ParseSummonsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
         Config::GetSingleton().GetGeneralRule().summonsEnabled = Utilities::ToLower(value) == "true" || value == "1";
     }
@@ -169,11 +175,13 @@ namespace Parser {
     }
 
     void ParseLesserPowerEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
-        Config::GetSingleton().GetGeneralRule().lesserPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
+        Config::GetSingleton().GetGeneralRule().lesserPowersEnabled =
+            Utilities::ToLower(value) == "true" || value == "1";
     }
 
     void ParseGreaterPowerEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
-        Config::GetSingleton().GetGeneralRule().greaterPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
+        Config::GetSingleton().GetGeneralRule().greaterPowersEnabled =
+            Utilities::ToLower(value) == "true" || value == "1";
     }
     void ParseScrollsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
         Config::GetSingleton().GetGeneralRule().scrollsEnabled = Utilities::ToLower(value) == "true" || value == "1";

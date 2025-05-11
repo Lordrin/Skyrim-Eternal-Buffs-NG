@@ -24,4 +24,5 @@ public:
     bool& GetToggleKeyHeld() { return toggleKeyHeld; }
     const float GetPermanentSpellDuration() { return permanentSpellDuration; }
     GeneralRule& GetGeneralRule() { return generalRule; }
+    OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GetParsers();
 };

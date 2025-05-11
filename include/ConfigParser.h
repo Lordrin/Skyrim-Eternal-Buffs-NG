@@ -28,6 +28,8 @@ namespace Parser {
 
     SpellRule ParseSpellRule(const std::string& configLine, const std::string& configFileName);
 
+    std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>> ParseGeneralSection();
+
     void ParseEnableRule(const std::string& value, const std::string& configFileName);
     void ParseShoutsEnabledRule(const std::string& value, const std::string& configFileName);
     void ParseSpellsEnabledRule(const std::string& value, const std::string& configFileName);

@@ -84,7 +84,7 @@ target_sources(
         "include/StringUtilities.h" "src/StringUtilities.cpp"
         "include/ConfigRules.h" "src/ConfigRules.cpp"
         "include/TPPlayerInputEventHandler.h" "src/TPPlayerInputEventHandler.cpp"
-        "include/Config.h"
+        "include/Config.h" "src/Config.cpp"
         "include/ConfigParser.h" "src/ConfigParser.cpp"
         "include/SpellUtilities.h" "src/SpellUtilities.cpp"
 )
