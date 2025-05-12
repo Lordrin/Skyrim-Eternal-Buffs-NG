@@ -24,8 +24,8 @@ namespace SpellDataPersistence {
     static std::mutex g_dataMutex;
 
     // --- Constants for Serialization ---
-    constexpr uint32_t kDataKey = 'EBUF';  // plugin's unique ID
-    // constexpr uint32_t kDataKey = 'LRDN';  // plugin's unique ID
+    // constexpr uint32_t kDataKey = 'EBUF';  // plugin's unique ID
+    constexpr uint32_t kDataKey = 'LRDN';  // plugin's unique ID
     constexpr uint32_t kDataVersion = 1; 
 
     // Logs the attributes of SpellEffectsMap

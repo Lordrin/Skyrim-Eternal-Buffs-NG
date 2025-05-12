@@ -186,4 +186,6 @@ namespace Parser {
     void ParseScrollsEnabledRule(const std::string& value, const std::string& /*configFileName*/) {
         Config::GetSingleton().GetGeneralRule().scrollsEnabled = Utilities::ToLower(value) == "true" || value == "1";
     }
+
+    bool ParseBoolString(const std::string& value) { return Utilities::ToLower(value) == "true" || value == "1"; }
 }

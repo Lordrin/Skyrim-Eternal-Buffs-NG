@@ -38,41 +38,45 @@ struct SpellRule : BaseRule {
 };
 
 struct SpellDisableCheck {
-    bool isDisabledInConfig;                      // Condition based on config
+    bool* isEnabledConfig;                      // Condition based on config
     std::function<bool(RE::SpellItem*)> checkFn;  // Function to check the spell property
     std::string_view description;                 // Description for logging
 };
 
 struct GeneralRule {
     bool enabled = true;
-    bool shoutsEnabled = true;
+    bool shoutsEnabled = false;
     bool spellsEnabled = true;
     bool summonsEnabled = true;
     bool lesserPowersEnabled = true;
-    bool greaterPowersEnabled = true;
-    bool scrollsEnabled = true;
+    bool greaterPowersEnabled = false;
+    bool scrollsEnabled = false;
+    bool recastableEnabled = false;
 
     OrderedMap<std::string, bool*> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GetParsers();
-    const std::vector<SpellDisableCheck> checks = {
-        {!&shoutsEnabled, IsShout, "Shouts"},
-        {!&lesserPowersEnabled, IsLesserPower, "Lesser Powers"},
-        {!&greaterPowersEnabled, IsGreaterPower, "Greater Powers"},
-        {!&summonsEnabled, IsSummon, "Summons"},
-        {!&spellsEnabled, IsSpell, "Spells"},  // Make sure IsSpell correctly identifies *only* regular spells if needed
-        {!&scrollsEnabled, IsScroll, "Scrolls"},
-        {true, IsConcentration, "Concentration spells"},  // Always disabled if concentration
-        {true,
-         [](RE::SpellItem* si) {  // Lambda for flags
-             return si && (si->data.flags & RE::SpellItem::SpellFlag::kFoodItem);
+    std::vector<SpellDisableCheck> checks = { // checks for early return
+        {&shoutsEnabled, IsShout, "Shouts"},
+        {&lesserPowersEnabled, IsLesserPower, "Lesser Powers"},
+        {&greaterPowersEnabled, IsGreaterPower, "Greater Powers"},
+        {&summonsEnabled, IsSummon, "Summons"},
+        {&spellsEnabled, IsSpell, "Spells"},
+        {&scrollsEnabled, IsScroll, "Scrolls"},
+        {nullptr, IsConcentration, "Concentration spells"},  // Always disabled if concentration
+        {nullptr,
+         [](RE::SpellItem* spellItem) {
+             return spellItem && (spellItem->data.flags & RE::SpellItem::SpellFlag::kFoodItem);
          },
-         "Food items"}  // Always disabled if food flag is set
+         "Food items"},                              // Always disabled if food flag is set
+        {&recastableEnabled, IsNonRecastable, "Spells that are not recastable"},
+        {nullptr, IsNotCastOnSelf, "Spells that are not cast on self"}, // If it is not a spell that is cast on self then return early
     };
 
-    std::string ToString() const;
+    std::string ToString() const; 
 };
 
 SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect);
 bool GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule);
 
 bool GetSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule);
+bool IsSpellRuleDefined(RE::SpellItem* spellItem);

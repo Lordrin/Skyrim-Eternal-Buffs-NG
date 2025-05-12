@@ -90,7 +90,8 @@ bool IsSpell(RE::SpellItem* spellItem) {
         logger::warn("IsSpell: SpellItem is null.");
         return false;
     }
-    return spellItem->GetFormType() == RE::FormType::Spell && spellItem->data.spellType == RE::MagicSystem::SpellType::kSpell;
+    return spellItem->GetFormType() == RE::FormType::Spell &&
+           spellItem->data.spellType == RE::MagicSystem::SpellType::kSpell;
 }
 
 bool IsScroll(RE::SpellItem* spellItem) {
@@ -98,7 +99,8 @@ bool IsScroll(RE::SpellItem* spellItem) {
         logger::warn("IsScroll: SpellItem is null.");
         return false;
     }
-    return spellItem->data.spellType == RE::MagicSystem::SpellType::kScroll || spellItem->data.castingType == RE::MagicSystem::CastingType::kScroll;
+    return spellItem->data.spellType == RE::MagicSystem::SpellType::kScroll ||
+           spellItem->data.castingType == RE::MagicSystem::CastingType::kScroll;
 }
 
 bool IsConcentration(RE::SpellItem* spellItem) {
@@ -107,4 +109,25 @@ bool IsConcentration(RE::SpellItem* spellItem) {
         return false;
     }
     return spellItem->data.castingType == RE::MagicSystem::CastingType::kConcentration;
+}
+
+bool IsNonRecastable(RE::SpellItem* spellItem) {
+    if (!spellItem) {
+        logger::warn("isRecastable: SpellItem is null.");
+        return false;
+    }
+    for (auto effect : spellItem->effects) {
+        if (effect->baseEffect->data.flags.any(RE::EffectSetting::EffectSettingData::Flag::kNoRecast)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool IsNotCastOnSelf(RE::SpellItem* spellItem) {
+    if (!spellItem) {
+        logger::warn("IsCastOnSelf: SpellItem is null.");
+        return false;
+    }
+    return spellItem->data.delivery != RE::MagicSystem::Delivery::kSelf;
 }

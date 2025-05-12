@@ -331,6 +331,12 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
         return;
     }
 
+    RE::PlayerCharacter* playerCharacter = RE::PlayerCharacter::GetSingleton();
+    if (!playerCharacter) {
+        logger::warn("CheckAppliedEffects: PlayerCharacter handle invalid.");
+        return;
+    }
+
     const char* spellName = spellItem->GetName();
     if (!spellName || spellName[0] == '\0') {
         spellName = "Unnamed Spell";
@@ -363,6 +369,14 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
             activeEffect->target == player->GetMagicTarget()) {
             LogActiveEffectDetails(activeEffect);
 
+            if (activeEffect->GetBaseObject()->data.flags.any(RE::EffectSetting::EffectSettingData::Flag::kNoRecast)) {
+                logger::debug("Spell '{}' ({:#010x}) is not recastable.", spellName, spellItem->GetFormID());
+            }
+
+            if(activeEffect->GetBaseObject()->data.flags.any(RE::EffectSetting::EffectSettingData::Flag::kNoDuration)) {
+                logger::debug("Spell '{}' ({:#010x}) has no duration.", spellName, spellItem->GetFormID());
+            }
+            
             if (isSpellSaved) {
                 HandleSavedSpell(activeEffect, castInfo, spellName, isSummonSpell);
             } else {

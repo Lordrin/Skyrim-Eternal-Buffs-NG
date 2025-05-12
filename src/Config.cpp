@@ -13,7 +13,7 @@ OrderedMap<std::string, std::function<void(const std::string&, const std::string
              }
          }},
         {
-            "loggingLevel", [this](const std::string& value, const std::string&) {
+            "logginglevel", [this](const std::string& value, const std::string&) {
                 std::string loggingLevel = Utilities::ToLower(Utilities::TrimString(value));
                 spdlog::level::level_enum level = spdlog::level::from_str(loggingLevel);
                 if (level == spdlog::level::n_levels) {

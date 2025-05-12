@@ -174,6 +174,17 @@ bool GetSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
     return false;
 }
 
+bool IsSpellRuleDefined(RE::SpellItem* spellItem) {
+    auto spellRuleIt =
+        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(spellItem->GetFullName()));
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+        if (spellRuleIt->second.IsCorrectRuleToSpell(spellItem)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 OrderedMap<std::string, bool*> GeneralRule::GetFields() {
     return {
         {"enabled", &enabled},
@@ -183,33 +194,27 @@ OrderedMap<std::string, bool*> GeneralRule::GetFields() {
         {"lesserPowersEnabled", &lesserPowersEnabled},
         {"greaterPowersEnabled", &greaterPowersEnabled},
         {"scrollsEnabled", &scrollsEnabled},
+        {"recastableEnabled", &recastableEnabled},
     };
 }
 
 OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GeneralRule::GetParsers() {
     return {
-        {"enable", [this](const std::string& value,
-                          const std::string&) { enabled = Utilities::ToLower(value) == "true" || value == "1"; }},
-        {"shouts", [this](const std::string& value,
-                          const std::string&) { shoutsEnabled = Utilities::ToLower(value) == "true" || value == "1"; }},
-        {"spells", [this](const std::string& value,
-                          const std::string&) { spellsEnabled = Utilities::ToLower(value) == "true" || value == "1"; }},
+        {"enable", [this](const std::string& value, const std::string&) { enabled = Parser::ParseBoolString(value); }},
+        {"shouts",
+         [this](const std::string& value, const std::string&) { shoutsEnabled = Parser::ParseBoolString(value); }},
+        {"spells",
+         [this](const std::string& value, const std::string&) { spellsEnabled = Parser::ParseBoolString(value); }},
         {"summons",
-         [this](const std::string& value, const std::string&) {
-             summonsEnabled = Utilities::ToLower(value) == "true" || value == "1";
-         }},
-        {"lesserPowers",
-         [this](const std::string& value, const std::string&) {
-             lesserPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
-         }},
-        {"greaterPowers",
-         [this](const std::string& value, const std::string&) {
-             greaterPowersEnabled = Utilities::ToLower(value) == "true" || value == "1";
-         }},
+         [this](const std::string& value, const std::string&) { summonsEnabled = Parser::ParseBoolString(value); }},
+        {"lesserpowers", [this](const std::string& value,
+                                const std::string&) { lesserPowersEnabled = Parser::ParseBoolString(value); }},
+        {"greaterpowers", [this](const std::string& value,
+                                 const std::string&) { greaterPowersEnabled = Parser::ParseBoolString(value); }},
         {"scrolls",
-         [this](const std::string& value, const std::string&) {
-             scrollsEnabled = Utilities::ToLower(value) == "true" || value == "1";
-         }},
+         [this](const std::string& value, const std::string&) { scrollsEnabled = Parser::ParseBoolString(value); }},
+        {"recastable",
+         [this](const std::string& value, const std::string&) { recastableEnabled = Parser::ParseBoolString(value); }},
     };
 }
 
@@ -232,6 +237,7 @@ OrderedMap<std::string, std::function<void(const std::string&, const std::string
 std::string GeneralRule::ToString() const {
     return fmt::format(
         "GeneralRule: enabled = {}, shoutsEnabled = {}, spellsEnabled = {}, summonsEnabled = {}, "
-        "lesserPowersEnabled = {}, greaterPowersEnabled = {}",
-        enabled, shoutsEnabled, spellsEnabled, summonsEnabled, lesserPowersEnabled, greaterPowersEnabled);
+        "lesserPowersEnabled = {}, greaterPowersEnabled = {}, scrollsEnabled = {}, recastableEnabled = {}",
+        enabled, shoutsEnabled, spellsEnabled, summonsEnabled, lesserPowersEnabled, greaterPowersEnabled,
+        scrollsEnabled, recastableEnabled);
 }
