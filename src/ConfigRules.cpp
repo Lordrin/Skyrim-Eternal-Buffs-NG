@@ -3,21 +3,42 @@
 #include "ConfigParser.h"
 
 OrderedMap<std::string, RuleVariant> BaseRule::GetFields() {
-    return {{"sourceFile", &sourceFile},
-            {"resolvedForm", resolvedForm},
-            {"nameFilter", &nameFilter},
-            {"isPermanentEnabled", &isPermanentEnabled},
-            {"keywordFilter", &keywordFilter}};
+    return {{"sourceFile", &sourceFile},       {"resolvedForm", resolvedForm},
+            {"nameFilter", &nameFilter},       {"isPermanentEnabled", &isPermanentEnabled},
+            {"keywordFilter", &keywordFilter}, {"toggleable", &toggleable},
+            {"pluginFilter", &pluginFilter}};
 }
 
 // Parsers that convert a std::string to the appropriate type
 // and assign it to the corresponding member variable.
 OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetParsers() {
     return {
-        {"sourceFile", [this](const std::string& value) { sourceFile = value; }},
-        {"resolvedForm",
-         [this](const std::string& value) { resolvedForm = Parser::ResolveIdentifier(value, sourceFile); }},
-        {"nameFilter", [this](const std::string& value) { nameFilter = value; }},
+        // {"sourceFile", [this](const std::string& value) { sourceFile = value; }},
+        {"identifier",
+         [this](const std::string& value) {
+             RuleIdentifierResult result = Parser::ResolveIdentifier(value, sourceFile);
+             switch (result.identifierType) {
+                 case RuleIdentifierType::kForm:
+                     resolvedForm = std::get<RE::TESForm*>(result.variantResult);
+                     nameFilter = resolvedForm->GetName();
+                     break;
+                 case RuleIdentifierType::kPlugin:
+                     pluginFilter = std::get<std::string>(result.variantResult);
+                     nameFilter = pluginFilter;
+                     break;
+                 case RuleIdentifierType::kName:
+                     nameFilter = std::get<std::string>(result.variantResult);
+                     break;
+                 case RuleIdentifierType::kInvalid:
+                     logger::error("Invalid form identifier: {}", value);
+                     break;
+                 default:
+                     logger::error("Error parsing form identifier: {}", value);
+                     break;
+             }
+             // resolvedForm = Parser::ResolveIdentifier(value, sourceFile);
+         }},
+        // {"nameFilter", [this](const std::string& value) { nameFilter = value; }},
         {"isPermanentEnabled",
          [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> isPermanentEnabled; }},
         {"toggleable", [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> toggleable; }},
@@ -44,10 +65,11 @@ bool BaseRule::IsCorrectRuleToForm(RE::TESForm* form) const {
 }
 
 std::string BaseRule::ToString() const {
+    // const auto fields = GetFields();
     return fmt::format(
-        "BaseRule: sourceFile = {}, FormName = {}, nameFilter = {}, isPermanentEnabled = {}, keywordFilter = {}",
+        "BaseRule: sourceFile = {}, FormName = {}, nameFilter = {}, isPermanentEnabled = {}, keywordFilter = {}, pluginFilter = {}, toggleable = {}",
         sourceFile, resolvedForm ? resolvedForm->GetName() : "nullptr", nameFilter, isPermanentEnabled,
-        Utilities::Join(keywordFilter, ", "));
+        Utilities::Join(keywordFilter, ", "), pluginFilter, toggleable);
 }
 
 OrderedMap<std::string, RuleVariant> SpellRule::GetFields() {
@@ -149,7 +171,7 @@ SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
  * active effect's spell. If found, the SpellRule is copied into the spellRule
  * parameter.
  */
-bool GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule) {
+bool FindSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule) {
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
@@ -162,7 +184,24 @@ bool GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spel
     return false;
 }
 
-bool GetSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
+/**
+ * @brief Finds the SpellRule for a spell by plugin name.
+ * @param pluginName The plugin name to find the SpellRule for.
+ * @param spellRule The SpellRule to populate if found.
+ * @return True if the SpellRule was found, false otherwise.
+ * @note This function searches for the SpellRule by the plugin name. If found, the SpellRule is copied into the spellRule
+ * parameter.
+ */
+bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule& spellRule) {
+    auto spellRuleIt = Config::GetSingleton().GetSpellRules().find(pluginName);
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+        spellRule = spellRuleIt->second;
+        return true;
+    }
+    return false;
+}
+
+bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(spellItem->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
@@ -218,21 +257,42 @@ OrderedMap<std::string, std::function<void(const std::string&, const std::string
     };
 }
 
-// std::vector<SpellDisableCheck> GeneralRule::GetChecks() const {
-//     return {
-//         {!&shoutsEnabled, IsShout, "Shouts"}, {!&lesserPowersEnabled, IsLesserPower, "Lesser Powers"},
-//             {!&greaterPowersEnabled, IsGreaterPower, "Greater Powers"}, {!&summonsEnabled, IsSummon, "Summons"},
-//             {!&spellsEnabled, IsSpell,
-//              "Spells"},  // Make sure IsSpell correctly identifies *only* regular spells if needed
-//             {!&scrollsEnabled, IsScroll, "Scrolls"},
-//             {true, IsConcentration, "Concentration spells"},  // Always disabled if concentration
-//             {true,
-//              [](RE::SpellItem* si) {  // Lambda for flags
-//                  return si && (si->data.flags & RE::SpellItem::SpellFlag::kFoodItem);
-//              },
-//              "Food items"}  // Always disabled if food flag is set
-//     };
-// }
+std::optional<std::string_view> GeneralRule::ShouldReturnEarly(RE::SpellItem* spellItem) const {
+    if (!enabled) {           // Check if the entire rule set is disabled
+        return std::nullopt;  // Not disabled by this rule set
+    }
+    if (!spellItem) {
+        return std::nullopt;  // Cannot check a null spell
+    }
+
+    for (const auto& check : checks) {
+        if (check.checkFn(spellItem)) {
+            bool categoryIsEnabled = true;
+
+            if (check.isEnabledConfig != nullptr) {
+                categoryIsEnabled = *check.isEnabledConfig;
+            } else {
+                // This is an unconditional check (like Concentration, FoodItem).
+                // These *always* disable if the checkFn returns true.
+                logger::debug("Spell [{}] matches unconditional disable rule: {}", spellItem->GetName(),
+                              check.description);
+                return check.description;  // Disable because it matched an unconditional rule
+            }
+
+            // If the category IS disabled and the spell matched...
+            if (!categoryIsEnabled) {
+                logger::debug("Spell [{}] disabled because category '{}' is disabled.", spellItem->GetName(),
+                              check.description);
+                return check.description;  // Disable
+            }
+            // If we get here: spell matched, but the corresponding category is enabled,
+            // so this specific check doesn't disable the spell. Continue to the next check.
+        }
+    }
+
+    // If no check resulted in disabling the spell
+    return std::nullopt;
+}
 
 std::string GeneralRule::ToString() const {
     return fmt::format(

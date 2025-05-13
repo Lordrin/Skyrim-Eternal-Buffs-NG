@@ -129,5 +129,65 @@ bool IsNotCastOnSelf(RE::SpellItem* spellItem) {
         logger::warn("IsCastOnSelf: SpellItem is null.");
         return false;
     }
+    // if(IsSummon(spellItem)) return false;
     return spellItem->data.delivery != RE::MagicSystem::Delivery::kSelf;
+}
+
+std::string GetSpellSourcePluginName(RE::SpellItem* spellItem) {
+    if (!spellItem) {
+        SKSE::log::warn("GetSpellSourcePluginName: spellItem is null.");
+        return "[Error: Null Spell]";
+    }
+
+    // --- Method 1: Preferred - Using TESForm::GetFile() ---
+    // This is the most straightforward and usually the best way.
+    const RE::TESFile* sourceFileFromForm = spellItem->GetFile(0);
+    if (sourceFileFromForm) {
+        return std::string(sourceFileFromForm->GetFilename()); // Or sourceFileFromForm->fileName
+    }
+    // If GetFile(0) returns null, it could be a dynamic form or an issue.
+    // We can then proceed to the manual lookup as a fallback.
+    SKSE::log::warn("GetSpellSourcePluginName: spellItem->GetFile(0) returned null for FormID {:08X}. Attempting manual lookup.", spellItem->GetFormID());
+
+
+    // --- Method 2: Manual Lookup using DataHandler and FormID components ---
+    RE::TESDataHandler* dataHandler = RE::TESDataHandler::GetSingleton();
+    if (!dataHandler) {
+        SKSE::log::error("GetSpellSourcePluginName (Manual): TESDataHandler is null.");
+        return "[Error: No DataHandler]";
+    }
+
+    RE::FormID fullFormID = spellItem->GetFormID();
+    uint8_t compileIndexByte = static_cast<uint8_t>(fullFormID >> 24); // This is the 00-FF byte
+
+    const RE::TESFile* foundFile = nullptr;
+
+    if (compileIndexByte == 0xFE) {
+        // It's a light plugin. Extract the 12-bit light slot index.
+        uint16_t lightSlotIndex = static_cast<uint16_t>((fullFormID >> 12) & 0x0FFF);
+        foundFile = dataHandler->LookupLoadedLightModByIndex(lightSlotIndex);
+        if (!foundFile) {
+            SKSE::log::warn("GetSpellSourcePluginName (Manual): LookupLoadedLightModByIndex for light index {:03X} (FormID {:08X}) returned null.", lightSlotIndex, fullFormID);
+            return "[Error: Unknown Light Plugin]";
+        }
+    } else if (compileIndexByte == 0xFF) {
+        // Dynamic/temporary form
+        SKSE::log::info("GetSpellSourcePluginName (Manual): FormID {:08X} is dynamic (index FF).", fullFormID);
+        return "[Dynamic Form]";
+    } else {
+        // Regular plugin (00-FD)
+        foundFile = dataHandler->LookupLoadedModByIndex(compileIndexByte);
+        if (!foundFile) {
+            SKSE::log::warn("GetSpellSourcePluginName (Manual): LookupLoadedModByIndex for index {:02X} (FormID {:08X}) returned null.", compileIndexByte, fullFormID);
+            return "[Error: Unknown Regular Plugin]";
+        }
+    }
+
+    if (foundFile) {
+        return std::string(foundFile->GetFilename()); // Or foundFile->fileName
+    }
+
+    // Should ideally not be reached if logic is correct and GetFile(0) also failed.
+    SKSE::log::error("GetSpellSourcePluginName (Manual): Failed to identify plugin for FormID {:08X} through all manual checks.", fullFormID);
+    return "[Error: Unidentified Plugin Source]";
 }

@@ -12,11 +12,12 @@ namespace Parser {
      * @param configFileName  The name of the configuration file for logging purposes.
      * @return A pointer to the resolved form, or nullptr if resolution fails.
      **/
-    RE::TESForm* ResolveIdentifier(const std::string& identifier, const std::string& configFileName);
+    RuleIdentifierResult ResolveIdentifier(const std::string& identifier, const std::string& configFileName);
     RE::TESForm* TryResolveFormIDPlugin(const std::string& identifier, const std::string& configFileName,
                                         RE::TESDataHandler* dataHandler);
     RE::TESForm* TryResolveEditorID(const std::string& identifier, const std::string& configFileName);
     RE::TESForm* TryResolveHexFormID(const std::string& identifier, RE::TESDataHandler* dataHandler);
+    std::optional<std::string> TryResolvePluginName(const std::string& identifier, const std::string& configFileName);
     /**
      * @brief Parses a line split into parts and applies the appropriate parsers.
      * @param SplitLine The split line parts. From the config file.
@@ -28,17 +29,7 @@ namespace Parser {
 
     SpellRule ParseSpellRule(const std::string& configLine, const std::string& configFileName);
 
-    std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>> ParseGeneralSection();
+    std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>> PopulateParseGeneralSection();
 
     bool ParseBoolString(const std::string& value);
-
-    // void ParseEnableRule(const std::string& value, const std::string& configFileName);
-    // void ParseShoutsEnabledRule(const std::string& value, const std::string& configFileName);
-    // void ParseSpellsEnabledRule(const std::string& value, const std::string& configFileName);
-    // void ParseLoggingLevelRule(const std::string& value, const std::string& configFileName);
-    // void ParseSummonsEnabledRule(const std::string& value, const std::string& configFileName);
-    // void ParseKeybindingRule(const std::string& value, const std::string& configFileName);
-    // void ParseLesserPowerEnabledRule(const std::string& value, const std::string& configFileName);
-    // void ParseGreaterPowerEnabledRule(const std::string& value, const std::string& configFileName);
-    // void ParseScrollsEnabledRule(const std::string& value, const std::string& configFileName);
 }

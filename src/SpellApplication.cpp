@@ -1,6 +1,6 @@
 #include "SpellApplication.h"
 
-#include <SpellUtilities.h>
+#include "SpellUtilities.h"
 
 /**
  * @brief Applies configuration rules to an active effect.
@@ -8,14 +8,22 @@
  * @return True if the rules were applied successfully, false otherwise.
  * @note This function checks if the active effect's spell matches any rules in the configuration.
  */
-bool ApplyConfigRulesToActiveEffect(RE::ActiveEffect* activeEffect) {
+bool ApplyConfigRulesToActiveEffect(RE::ActiveEffect* activeEffect, const std::string& pluginName) {
     if (!activeEffect) {
         logger::warn("ApplyConfigRulesToActiveEffect: activeEffect is null");
         return false;
     }
 
     SpellRule spellRule;
-    if (GetSpellRuleForActiveEffect(activeEffect, spellRule)) {
+    // The more specific rule is applied first and overrides the less specific rule
+    if (FindSpellRuleForActiveEffect(activeEffect, spellRule)) {
+        logger::debug("ApplyConfigRulesToSpell: Found rule for active effect: {:#010x} ({}) from spell: {:#010x} ({})",
+                      activeEffect->GetBaseObject()->GetFormID(), activeEffect->GetBaseObject()->GetName(),
+                      activeEffect->spell->GetFormID(), activeEffect->spell->GetName());
+        spellRule.ApplySpellRulesToActiveEffect(activeEffect);
+        return true;
+    } else if (!pluginName.empty() && FindSpellRuleForSpellByPluginName(pluginName, spellRule)) {
+        logger::debug("ApplyConfigRulesToSpell: Found rule for plugin: {}", pluginName);
         spellRule.ApplySpellRulesToActiveEffect(activeEffect);
         return true;
     } else {
@@ -110,7 +118,9 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         RE::FormID linkedSpellFormId = activeEffect->spell->GetFormID();
         RE::SpellItem* spellItem = activeEffect->spell->As<RE::SpellItem>();
         if (spellItem) {
-            bool isRuleApplied = ApplyConfigRulesToActiveEffect(activeEffect);  // Apply config rules to the spell
+            std::string pluginName = GetSpellSourcePluginName(spellItem);
+            bool isRuleApplied =
+                ApplyConfigRulesToActiveEffect(activeEffect, pluginName);  // Apply config rules to the spell
             if (isRuleApplied) {
                 appliedSpellsIDs.insert(linkedSpellFormId);  // Add to the list of applied spells
                 logger::debug("ApplyConfigRulesToSpell: Spell rules applied to active effect: {:#010x} - {}. Spell: {}",
@@ -168,35 +178,8 @@ void ApplyAllSavedPermanentSpellsToPlayer() {
     ApplyAllSavedSpellsToActor(*player);
 }
 
-// Function to log active effects for debugging
-void LogActiveEffectDetails(RE::ActiveEffect* activeEffect) {
-    if (spdlog::get_level() < spdlog::level::debug) {
-        return;
-    }
-    if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject()) {
-        return;
-    }
-
-    RE::EffectSetting* mgef = activeEffect->GetBaseObject();
-    RE::Effect* spellEffectEntry = activeEffect->effect;
-    const char* mgefName = mgef->GetName();
-    if (!mgefName || mgefName[0] == '\0') {
-        mgefName = "Unnamed Effect";
-    }
-
-    logger::debug("  -> Applied Effect Found:");
-    logger::debug("      Name: {}", mgefName);
-    logger::debug("      MGEF ID: {:#010x}", mgef->GetFormID());
-    logger::debug("      Spell Duration: {}", spellEffectEntry->effectItem.duration);
-    logger::debug("      Spell Magnitude: {}", spellEffectEntry->effectItem.magnitude);
-    logger::debug("      Spell Area: {}", spellEffectEntry->effectItem.area);
-    logger::debug("      Active Duration (Remaining): {:.2f}", activeEffect->duration);
-    logger::debug("      Active Magnitude: {:.2f}", activeEffect->magnitude);
-    logger::debug("      Elapsed Time: {:.2f}s", activeEffect->elapsedSeconds);
-}
-
 void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo, const char* spellName,
-                      bool isSummonSpell) {
+                      bool isSummonSpell, const std::string& pluginName) {
     // --- Initial Setup ---
     RE::EffectSetting* mgef = activeEffect->GetBaseObject();
     if (!mgef) {
@@ -243,7 +226,7 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
         // We want to dispel (either originally on player or summon+key) AND the rule allows toggling.
         finalAction = SpellHandlingAction::kDispel;
         logger::debug("Determined Action for '{}': Dispel (Toggleable: {}, Initially Considered Dispel: {})", spellName,
-                     spellRule.toggleable, shouldConsiderDispel);
+                      spellRule.toggleable, shouldConsiderDispel);
     } else {
         // We either didn't want to dispel initially, OR we wanted to but the rule prevents toggling it off.
         finalAction = SpellHandlingAction::kApplyConfig;
@@ -254,7 +237,7 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
                 spellName, spellRule.toggleable, shouldConsiderDispel);
         } else {
             logger::debug("Determined Action for '{}': Apply Config (Toggleable: {}, Initially Considered Dispel: {})",
-                         spellName, spellRule.toggleable, shouldConsiderDispel);
+                          spellName, spellRule.toggleable, shouldConsiderDispel);
         }
     }
 
@@ -272,7 +255,7 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
             logger::debug("Executing Apply Config / Keep for spell '{}' ({:#010x}).", spellName,
                           spellItem->GetFormID());
             // Try applying specific rules first
-            appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
+            appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect, pluginName);
             // If no specific rule applied, set the default permanent duration
             if (!appliedConfig) {
                 activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
@@ -293,8 +276,8 @@ bool IsTemporaryEffect(RE::ActiveEffect* activeEffect) {
     return activeEffect->duration > 0.0f && activeEffect->duration < Config::GetSingleton().GetPermanentSpellDuration();
 }
 
-void HandleUnsavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo) {
-    bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect);
+void HandleUnsavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castInfo, const std::string& pluginName) {
+    bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect, pluginName);
     if (!appliedConfig && IsTemporaryEffect(activeEffect)) {
         activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
     }
@@ -345,13 +328,33 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
     logger::debug("Checking applied effects for spell '{}' ({:#010x}) cast last frame...", spellName,
                   spellItem->GetFormID());
 
-    bool isSummonSpell = IsSummonSpell(spellItem);
+    bool isSummonSpell = IsSummonSpell(spellItem);  // Separate check from the Onprocess check
+    bool isCastOnSelfSpell = !IsNotCastOnSelf(spellItem);
 
-    if (isSummonSpell && !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
-        logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early",
-                     spellItem->GetName(), spellItem->GetFormID());
+    if (!isSummonSpell && !isCastOnSelfSpell) {
+        logger::debug("Spell '{}' ({:#010x}) is not a summon or cast on self spell. Returning Early", spellName,
+                      spellItem->GetFormID());
         return;
     }
+
+    std::string pluginName = GetSpellSourcePluginName(spellItem);
+    logger::debug("Spell '{}' ({:#010x}) has plugin '{}'", spellName, spellItem->GetFormID(), pluginName);
+
+    bool hasPluginRule = false;
+
+    auto it = Config::GetSingleton().GetSpellRules().find(pluginName);
+
+    if (it != Config::GetSingleton().GetSpellRules().end()) {
+        logger::debug("Spell '{}' ({:#010x}) has a rule for plugin '{}'", spellName, spellItem->GetFormID(),
+                      pluginName);
+        hasPluginRule = true;
+    }
+
+    // if (isSummonSpell && !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
+    //     logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early",
+    //                  spellItem->GetName(), spellItem->GetFormID());
+    //     return;
+    // }
 
     bool isSpellSaved = SpellDataPersistence::IsSpellSaved(spellItem->GetFormID());
     if (isSpellSaved) {
@@ -373,14 +376,16 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
                 logger::debug("Spell '{}' ({:#010x}) is not recastable.", spellName, spellItem->GetFormID());
             }
 
-            if(activeEffect->GetBaseObject()->data.flags.any(RE::EffectSetting::EffectSettingData::Flag::kNoDuration)) {
+            if (activeEffect->GetBaseObject()->data.flags.any(
+                    RE::EffectSetting::EffectSettingData::Flag::kNoDuration)) {
                 logger::debug("Spell '{}' ({:#010x}) has no duration.", spellName, spellItem->GetFormID());
+                // continue;
             }
-            
+
             if (isSpellSaved) {
-                HandleSavedSpell(activeEffect, castInfo, spellName, isSummonSpell);
+                HandleSavedSpell(activeEffect, castInfo, spellName, isSummonSpell, pluginName);
             } else {
-                HandleUnsavedSpell(activeEffect, castInfo);
+                HandleUnsavedSpell(activeEffect, castInfo, pluginName);
             }
         }
     }

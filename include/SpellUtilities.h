@@ -11,6 +11,7 @@ bool IsConcentration(RE::SpellItem* spellItem);
 // bool IsRecastable(RE::SpellItem* spellItem);
 bool IsNonRecastable(RE::SpellItem* spellItem);
 bool IsNotCastOnSelf(RE::SpellItem* spellItem);
+std::string GetSpellSourcePluginName(RE::SpellItem* spellItem);
 
 #ifdef _DEBUG
 static const char* ToString(RE::MagicSystem::SpellType type)
@@ -147,13 +148,14 @@ static const char* ToString(SKSE::stl::enumeration<RE::SpellItem::SpellFlag, uin
             result += flag.second;
             result += "|";
         }
-        SKSE::log::debug("flag: {}, name: {}", (int)flag.first, flag.second);
-        SKSE::log::debug("current result: {}", result);
+        // SKSE::log::debug("flag: {}, name: {}", (int)flag.first, flag.second);
+        // SKSE::log::debug("current result: {}", result);
     }
 
     if (result.empty()) return "kNone";
     if (result.back() == '|') result.pop_back(); // remove trailing '|'
 
+    SKSE::log::debug("current result: {}", result);
     return result.c_str();
 }
 

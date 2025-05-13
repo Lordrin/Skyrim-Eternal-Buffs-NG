@@ -134,3 +134,31 @@ void LogSpellItemDetails(RE::SpellItem* spellItem, const std::string& indent, co
     logger::debug("{}  Spell flags: {}", indent, ToString(spellItem->data.flags));
 #endif  // DEBUG
 }
+
+
+// Function to log active effects for debugging
+void LogActiveEffectDetails(RE::ActiveEffect* activeEffect) {
+    if (spdlog::get_level() < spdlog::level::debug) {
+        return;
+    }
+    if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject()) {
+        return;
+    }
+
+    RE::EffectSetting* mgef = activeEffect->GetBaseObject();
+    RE::Effect* spellEffectEntry = activeEffect->effect;
+    const char* mgefName = mgef->GetName();
+    if (!mgefName || mgefName[0] == '\0') {
+        mgefName = "Unnamed Effect";
+    }
+
+    logger::debug("  -> Applied Effect Found:");
+    logger::debug("      Name: {}", mgefName);
+    logger::debug("      MGEF ID: {:#010x}", mgef->GetFormID());
+    logger::debug("      Spell Duration: {}", spellEffectEntry->effectItem.duration);
+    logger::debug("      Spell Magnitude: {}", spellEffectEntry->effectItem.magnitude);
+    logger::debug("      Spell Area: {}", spellEffectEntry->effectItem.area);
+    logger::debug("      Active Duration (Remaining): {:.2f}", activeEffect->duration);
+    logger::debug("      Active Magnitude: {:.2f}", activeEffect->magnitude);
+    logger::debug("      Elapsed Time: {:.2f}s", activeEffect->elapsedSeconds);
+}

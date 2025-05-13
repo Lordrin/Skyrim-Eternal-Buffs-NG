@@ -11,10 +11,20 @@
 
 using RuleVariant = std::variant<std::string*, RE::TESForm*, bool*, uint32_t*, std::vector<std::string>*, float*>;
 
+enum class RuleIdentifierType { kInvalid = -1, kName = 0, kForm = 1, kPlugin = 2 };
+
+struct RuleIdentifierResult {
+    RuleIdentifierType identifierType;
+    // RE::TESForm* formResult;
+    // std::string result;
+    std::variant<std::string, RE::TESForm*> variantResult;
+};
+
 struct BaseRule {
-    std::string sourceFile;
+    std::string sourceFile;  // Not handled by parser
     RE::TESForm* resolvedForm = nullptr;
-    std::string nameFilter;
+    std::string nameFilter;    // Handled by resolvedForm parser
+    std::string pluginFilter;  // Handled by resolvedForm parser
     bool isPermanentEnabled = true;
     bool toggleable = true;
     std::vector<std::string> keywordFilter;
@@ -38,7 +48,7 @@ struct SpellRule : BaseRule {
 };
 
 struct SpellDisableCheck {
-    bool* isEnabledConfig;                      // Condition based on config
+    bool* isEnabledConfig;                        // Condition based on config
     std::function<bool(RE::SpellItem*)> checkFn;  // Function to check the spell property
     std::string_view description;                 // Description for logging
 };
@@ -55,7 +65,8 @@ struct GeneralRule {
 
     OrderedMap<std::string, bool*> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GetParsers();
-    std::vector<SpellDisableCheck> checks = { // checks for early return
+    std::vector<SpellDisableCheck> checks = {
+        // checks for early return
         {&shoutsEnabled, IsShout, "Shouts"},
         {&lesserPowersEnabled, IsLesserPower, "Lesser Powers"},
         {&greaterPowersEnabled, IsGreaterPower, "Greater Powers"},
@@ -67,16 +78,20 @@ struct GeneralRule {
          [](RE::SpellItem* spellItem) {
              return spellItem && (spellItem->data.flags & RE::SpellItem::SpellFlag::kFoodItem);
          },
-         "Food items"},                              // Always disabled if food flag is set
+         "Food items"},  // Always disabled if food flag is set
         {&recastableEnabled, IsNonRecastable, "Spells that are not recastable"},
-        {nullptr, IsNotCastOnSelf, "Spells that are not cast on self"}, // If it is not a spell that is cast on self then return early
+        // {nullptr, IsNotCastOnSelf,
+        //  "Spells that are not cast on self"},  // If it is not a spell that is cast on self then return early
     };
 
-    std::string ToString() const; 
+    std::optional<std::string_view> ShouldReturnEarly(RE::SpellItem* spellItem) const;
+    std::string ToString() const;
 };
 
 SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect);
-bool GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule);
+bool FindSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule);
+bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule& spellRule);
 
-bool GetSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule);
+bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule);
 bool IsSpellRuleDefined(RE::SpellItem* spellItem);
+
