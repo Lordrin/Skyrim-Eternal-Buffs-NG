@@ -148,8 +148,6 @@ static const char* ToString(SKSE::stl::enumeration<RE::SpellItem::SpellFlag, uin
             result += flag.second;
             result += "|";
         }
-        // SKSE::log::debug("flag: {}, name: {}", (int)flag.first, flag.second);
-        // SKSE::log::debug("current result: {}", result);
     }
 
     if (result.empty()) return "kNone";

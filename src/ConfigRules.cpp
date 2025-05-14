@@ -13,7 +13,6 @@ OrderedMap<std::string, RuleVariant> BaseRule::GetFields() {
 // and assign it to the corresponding member variable.
 OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetParsers() {
     return {
-        // {"sourceFile", [this](const std::string& value) { sourceFile = value; }},
         {"identifier",
          [this](const std::string& value) {
              RuleIdentifierResult result = Parser::ResolveIdentifier(value, sourceFile);
@@ -36,9 +35,7 @@ OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetPa
                      logger::error("Error parsing form identifier: {}", value);
                      break;
              }
-             // resolvedForm = Parser::ResolveIdentifier(value, sourceFile);
          }},
-        // {"nameFilter", [this](const std::string& value) { nameFilter = value; }},
         {"isPermanentEnabled",
          [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> isPermanentEnabled; }},
         {"toggleable", [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> toggleable; }},

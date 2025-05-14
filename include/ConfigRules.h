@@ -80,8 +80,6 @@ struct GeneralRule {
          },
          "Food items"},  // Always disabled if food flag is set
         {&recastableEnabled, IsNonRecastable, "Spells that are not recastable"},
-        // {nullptr, IsNotCastOnSelf,
-        //  "Spells that are not cast on self"},  // If it is not a spell that is cast on self then return early
     };
 
     std::optional<std::string_view> ShouldReturnEarly(RE::SpellItem* spellItem) const;

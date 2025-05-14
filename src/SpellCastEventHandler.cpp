@@ -38,23 +38,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     LogSpellItemDetails(spellItem);
 
     if (!IsSpellRuleDefined(spellItem)) {  // Rule defined for this specific spell
-        // const auto& checks = Config::GetSingleton().GetGeneralRule().checks;
-        // logger::debug("No rule defined for this spell.");
-
-        // // Iterate through the checks
-        // for (const auto& check : checks) {
-        //     bool isEnabled = false;
-        //     if(check.isEnabledConfig) {
-        //         isEnabled = *check.isEnabledConfig;
-        //     }
-        //     // If the category is disabled AND the spell matches the check function
-        //     if (!isEnabled && check.checkFn(spellItem)) {
-        //         logger::debug("{} are disabled. Skipping spell: {}", check.description, spellItem->GetName());
-        //         return RE::BSEventNotifyControl::kContinue;  // Skip processing this spell
-        //     }
-        // }
         if (auto disableReason = Config::GetSingleton().GetGeneralRule().ShouldReturnEarly(spellItem)) {
-            // Optional: Log here using the reason, or rely on logging within ShouldDisableSpell
             logger::debug("Skipping spell [{}]: Reason: {}", spellItem->GetName(), disableReason.value());
             return RE::BSEventNotifyControl::kContinue; // Skip processing this spell
         }
@@ -65,8 +49,8 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
                      !playerActor->IsRunning());
     }
 
-    LogAllActiveEffectsOfSpell(spellItem);  // Log all active effects of the spell
-    LogKeywords(spellItem, "      ");       // Pass mgef and appropriate indent
+    LogAllActiveEffectsOfSpell(spellItem);
+    LogKeywords(spellItem, "      ");       
 
     auto magicTarget = playerActor->GetMagicTarget();
     if (!magicTarget) {

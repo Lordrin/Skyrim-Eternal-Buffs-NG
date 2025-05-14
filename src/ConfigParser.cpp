@@ -133,16 +133,7 @@ namespace Parser {
             return {};
         }
 
-        // Construct the vector in the correct order
-        // std::vector<std::string> orderedParts;
-        // orderedParts.reserve(parts.size() + 2);  // Reserve space for configFileName and identifier
-        // orderedParts.push_back(configFileName);  // Add configFileName as the first part
-        // orderedParts.push_back(parts[0]);        // Add the identifier as the second part
-        // orderedParts.insert(orderedParts.end(), std::make_move_iterator(parts.begin()),
-        //                     std::make_move_iterator(parts.end()));  // Move the rest of the parts
-
         logger::debug("valueString: {}", configLine);
-        // logger::debug("parts: {}", Utilities::Join(orderedParts, "|"));
 
         SpellRule spellRule;
         spellRule.sourceFile = configFileName;
@@ -151,8 +142,6 @@ namespace Parser {
         if (spellRule.resolvedForm) {
             logger::info("Resolved FormID {:#010x} to '{}' (config: {})", spellRule.resolvedForm->GetFormID(),
                          spellRule.resolvedForm->GetName(), configFileName);
-            // spellRule.nameFilter = spellRule.resolvedForm->GetName();  // Set the nameFilter to the resolved form's
-            // name
         }
 
         Config::GetSingleton().GetSpellRules().insert({Utilities::RemoveWhitespace(spellRule.nameFilter), spellRule});

@@ -350,12 +350,6 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
         hasPluginRule = true;
     }
 
-    // if (isSummonSpell && !Config::GetSingleton().GetGeneralRule().spellsEnabled) {
-    //     logger::info("Detected Summon Spell: {} ({:#010x}). Summons are disabled. Returning Early",
-    //                  spellItem->GetName(), spellItem->GetFormID());
-    //     return;
-    // }
-
     bool isSpellSaved = SpellDataPersistence::IsSpellSaved(spellItem->GetFormID());
     if (isSpellSaved) {
         logger::debug("Spell '{}' ({:#010x}) is saved.", spellName, spellItem->GetFormID());
