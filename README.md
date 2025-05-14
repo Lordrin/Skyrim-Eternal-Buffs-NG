@@ -1,6 +1,6 @@
-# Teleport Player NG
+# Eternal Buffs NG
 
-A C++ SKSE plugin for Skyrim that allows the player to teleport.
+A C++ SKSE plugin for Skyrim that makes all self cast spells last 'eternally'.
 
 ---
 
