@@ -146,7 +146,7 @@ std::string GetSpellSourcePluginName(RE::SpellItem* spellItem) {
         return std::string(sourceFileFromForm->GetFilename()); // Or sourceFileFromForm->fileName
     }
     // If GetFile(0) returns null, it could be a dynamic form or an issue.
-    // We can then proceed to the manual lookup as a fallback.
+    //Manual lookup as a fallback.
     SKSE::log::warn("GetSpellSourcePluginName: spellItem->GetFile(0) returned null for FormID {:08X}. Attempting manual lookup.", spellItem->GetFormID());
 
 
