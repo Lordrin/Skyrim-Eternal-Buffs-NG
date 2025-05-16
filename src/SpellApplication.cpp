@@ -136,6 +136,7 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
             logger::debug("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
             activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();  // Set to permanent duration
             activeEffect->elapsedSeconds = 0.0f;                                          // Reset elapsed time
+            // activeEffect->GetBaseObject()->magicItemDescription = "This is a test";
             appliedSpellsIDs.insert(linkedSpellFormId);  // Add to the list of applied spells
 
         } else {

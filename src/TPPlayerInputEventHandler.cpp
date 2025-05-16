@@ -20,7 +20,7 @@ RE::BSEventNotifyControl TPPlayerInputEventHandler::ProcessEvent(RE::InputEvent*
     for (auto inputEvent = *a_event; inputEvent; inputEvent = inputEvent->next) {
         if (inputEvent->eventType == RE::INPUT_EVENT_TYPE::kButton) {
             const RE::ButtonEvent* button = static_cast<const RE::ButtonEvent*>(inputEvent);
-            const auto device = inputEvent->GetDevice();
+            const RE::INPUT_DEVICE device = inputEvent->GetDevice();
             uint32_t key = button->GetIDCode();
 
             switch (device) {
@@ -34,7 +34,7 @@ RE::BSEventNotifyControl TPPlayerInputEventHandler::ProcessEvent(RE::InputEvent*
                     break;
             }
 
-            const auto toggleKeyHeld = Config::GetSingleton().GetToggleKeyHeld();
+            const bool toggleKeyHeld = Config::GetSingleton().GetToggleKeyHeld();
 
             if (key == hotKey) {
                 if (Config::GetSingleton().GetToggleKeyHeld() != button->IsHeld()) {
