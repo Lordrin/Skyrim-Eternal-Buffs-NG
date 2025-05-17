@@ -36,6 +36,7 @@ struct BaseRule {
 };
 
 struct SpellRule : BaseRule {
+    std::optional<bool> shouldReserveMagicka = std::nullopt;
     float durationFilter = -1.0f;
     uint32_t minDurationFilter = 0;
     float magnitudeFilter = -1.0f;
@@ -62,6 +63,7 @@ struct GeneralRule {
     bool greaterPowersEnabled = false;
     bool scrollsEnabled = false;
     bool recastableEnabled = false;
+    bool reserveMagickaEnabled = false;
 
     OrderedMap<std::string, bool*> GetFields();
     OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GetParsers();

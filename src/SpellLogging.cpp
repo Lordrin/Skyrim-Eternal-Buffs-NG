@@ -135,7 +135,6 @@ void LogSpellItemDetails(RE::SpellItem* spellItem, const std::string& indent, co
 #endif  // DEBUG
 }
 
-
 // Function to log active effects for debugging
 void LogActiveEffectDetails(RE::ActiveEffect* activeEffect) {
     if (spdlog::get_level() < spdlog::level::debug) {

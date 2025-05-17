@@ -12,12 +12,21 @@
 #include "StringUtilities.h"
 #include "ConfigRules.h"
 
+// struct SpellData {
+//     std::vector<RE::FormID> spellEffects;
+//     uint32_t cost = 0;
+// };
+
 // Stores a map where:
 // Key = SpellItem FormID
 // Value = Vector of EffectSetting (MGEF) FormIDs associated with that spell
 using SpellEffectsMap = std::map<RE::FormID, std::vector<RE::FormID>>;
 
 namespace SpellDataPersistence {
+    // struct SpellData {
+    //     SpellEffectsMap spellEffectsMap;
+    //     uint32_t cost = 0;
+    // };
     // Our runtime storage for the data
     static SpellEffectsMap g_savedSpellData;
     // Mutex to protect access if multiple threads could modify it (safer practice)
@@ -37,7 +46,7 @@ namespace SpellDataPersistence {
      *
      * @param spell A pointer to the RE::SpellItem to cache. If null or invalid, the function does nothing.
      */
-    void CacheSpellForSaving(RE::SpellItem* spell);
+    void CacheSpellForSaving(RE::SpellItem* spell, uint32_t spellCost = 0);
 
     /**
      * @brief Registers the necessary SKSE Serialization callbacks

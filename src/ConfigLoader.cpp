@@ -3,8 +3,9 @@
 ConfigLoader::ConfigLoader() { RegisterParsers(); }
 
 void ConfigLoader::RegisterParsers() {
-    sections["spells"]["spell"] = Parser::ParseSpellRule;
+    sections["config"] = Parser::PopulateParseConfigSection();
     sections["general"] = Parser::PopulateParseGeneralSection();
+    sections["spells"]["spell"] = Parser::ParseSpellRule;
 
 }
 

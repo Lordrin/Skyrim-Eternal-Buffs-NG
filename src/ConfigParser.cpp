@@ -48,12 +48,12 @@ namespace Parser {
                 std::string pluginName = Utilities::TrimString(formPluginPair[1]);
                 RE::TESForm* resolvedForm = dataHandler->LookupForm(localFormID, pluginName);
                 if (resolvedForm) {
-                    logger::debug("[TryResolveFormIDPlugin] Resolved FormID {:#010x} to '{}' (config: {})", localFormID, resolvedForm->GetName(),
-                                  configFileName);
+                    logger::debug("[TryResolveFormIDPlugin] Resolved FormID {:#010x} to '{}' (config: {})", localFormID,
+                                  resolvedForm->GetName(), configFileName);
                     return resolvedForm;
                 } else {
-                    logger::warn("[TryResolveFormIDPlugin] FormID {:#010x} not found in plugin '{}' (config: {})", localFormID, pluginName,
-                                 configFileName);
+                    logger::warn("[TryResolveFormIDPlugin] FormID {:#010x} not found in plugin '{}' (config: {})",
+                                 localFormID, pluginName, configFileName);
                 }
             } catch (...) { /* ignore format errors, try next method */
             }
@@ -164,9 +164,12 @@ namespace Parser {
 
     std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>>
     PopulateParseGeneralSection() {
-        auto mergedConfigRules = Config::GetSingleton().GetGeneralRule().GetParsers();
-        mergedConfigRules.Concatenate(Config::GetSingleton().GetParsers());
-        return mergedConfigRules.GetMap();
+        return Config::GetSingleton().GetGeneralRule().GetParsers().GetMap();
+    }
+
+    std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>>
+    PopulateParseConfigSection() {
+        return Config::GetSingleton().GetParsers().GetMap();
     }
 
     void ParseKeybindingRule(const std::string& value, const std::string& /*configFileName*/) {

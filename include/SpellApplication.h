@@ -25,4 +25,6 @@ void DispellAllSavedSpellsFromPlayer();
 void ApplyAllSavedSpellsToActor(RE::Actor& actor);
 void ApplyAllSavedPermanentSpellsToPlayer();
 
+void ApplyTemporaryDebuffToPlayer(float magickaCost);
+
 void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo);

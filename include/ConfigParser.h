@@ -5,6 +5,7 @@
 
 #include "ConfigRules.h"
 
+// This is meant to parse lines and resolve complete form IDs, EditorIDs, or plugin names
 namespace Parser {
     /**
      * @brief Resolves an identifier to a Skyrim form.
@@ -30,6 +31,7 @@ namespace Parser {
     SpellRule ParseSpellRule(const std::string& configLine, const std::string& configFileName);
 
     std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>> PopulateParseGeneralSection();
+    std::unordered_map<std::string, std::function<void(const std::string&, const std::string&)>> PopulateParseConfigSection();
 
     bool ParseBoolString(const std::string& value);
 }

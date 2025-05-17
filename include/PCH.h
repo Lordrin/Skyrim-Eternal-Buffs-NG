@@ -4,8 +4,6 @@
 
 #include "RE/Skyrim.h"
 #include "SKSE/SKSE.h"
-#include "RE/B/BSContainer.h"
-#include "RE/P/PerkEntryVisitor.h"
 
 #include "Config.h"
 

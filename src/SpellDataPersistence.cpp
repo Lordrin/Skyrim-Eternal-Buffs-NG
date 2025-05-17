@@ -3,7 +3,7 @@
 #include "SpellCastEventHandler.h"
 
 namespace SpellDataPersistence {
-    void CacheSpellForSaving(RE::SpellItem* spell) {
+    void CacheSpellForSaving(RE::SpellItem* spell, uint32_t spellCost) {
         if (!spell) {
             return;
         }
@@ -31,7 +31,7 @@ namespace SpellDataPersistence {
 
         g_savedSpellData[spellID] = std::move(effectIDs);  // Use move for efficiency
         logger::debug("Cached spell {:#010x} ('{}') with {} effects for saving.", spellID, spell->GetName(),
-                        g_savedSpellData[spellID].size());
+                      g_savedSpellData[spellID].size());
     }
 
     const SpellEffectsMap& GetAllSavedSpells() {
@@ -57,6 +57,7 @@ namespace SpellDataPersistence {
 
     // Called when the game saves
     void SaveCallback(SKSE::SerializationInterface* skse) {
+        // g_isFocused = false;
         logger::debug("SpellDataPersistence: SaveCallback triggered.");
 
         std::lock_guard lock(g_dataMutex);  // Lock for reading the map
@@ -95,8 +96,7 @@ namespace SpellDataPersistence {
             for (const auto& effectID : effectIDs) {
                 if (!skse->WriteRecordData(&effectID, sizeof(effectID))) {
                     logger::error("SpellDataPersistence: Failed to write effect ID {:#010x} for spell {:#010x}.",
-                                     effectID, spellID);
-                    // Maybe stop saving this spell's effects? Or just log and continue? Let's continue.
+                                  effectID, spellID);
                 }
             }
         }
@@ -162,7 +162,7 @@ namespace SpellDataPersistence {
                     // Read number of effects
                     if (!skse->ReadRecordData(&numEffects, sizeof(numEffects))) {
                         logger::error("SpellDataPersistence: Failed to read effect count for spell {:#010x}.",
-                                         baseSpellId);
+                                      baseSpellId);
                         g_savedSpellData.clear();  // Abort loading
                         return;
                     }
@@ -174,7 +174,7 @@ namespace SpellDataPersistence {
                         RE::FormID currentEffectID = 0;
                         if (!skse->ReadRecordData(&currentEffectID, sizeof(currentEffectID))) {
                             logger::error("SpellDataPersistence: Failed to read effect ID #{} for spell {:#010x}.",
-                                             j + 1, currentEffectID);
+                                          j + 1, currentEffectID);
                             g_savedSpellData.clear();  // Abort loading
                             return;
                         }
@@ -201,6 +201,17 @@ namespace SpellDataPersistence {
 
     // Called when the game reverts to a previous save (e.g., Load -> Load older)
     void RevertCallback(SKSE::SerializationInterface* /*skse*/) {
+        // g_isFocused = false;
+        //TODO
+        // while (::ShowCursor(TRUE) < 0) {
+        //     // The loop continues as long as the cursor display count is negative
+        //     logger::info("Cursor Display Count: {}", ::ShowCursor(TRUE));
+        // }
+        // // Release mouse capture
+        // ::ReleaseCapture();
+
+        // // Unclip the cursor
+        // ::ClipCursor(nullptr);
         logger::debug("SpellDataPersistence: RevertCallback triggered. Clearing cached spell data.");
         std::lock_guard lock(g_dataMutex);
         g_savedSpellData.clear();
@@ -247,10 +258,10 @@ namespace SpellDataPersistence {
 }
 
 void SpellDataPersistence::LogSpellSFromMap(const SpellEffectsMap& spellEffectsMap) {
-    if(spdlog::get_level() < spdlog::level::debug) {
+    if (spdlog::get_level() < spdlog::level::debug) {
         return;
     }
-    
+
     if (spellEffectsMap.empty()) {
         logger::debug(" SpellEffectsMap map is currently empty. No data loaded or cached.");
         logger::debug("--- Finished Logging Spell Data ---");

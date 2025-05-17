@@ -11,7 +11,9 @@ bool IsConcentration(RE::SpellItem* spellItem);
 // bool IsRecastable(RE::SpellItem* spellItem);
 bool IsNonRecastable(RE::SpellItem* spellItem);
 bool IsNotCastOnSelf(RE::SpellItem* spellItem);
+bool IsTemporaryEffect(RE::ActiveEffect* activeEffect);
 std::string GetSpellSourcePluginName(RE::SpellItem* spellItem);
+
 
 #ifdef _DEBUG
 static const char* ToString(RE::MagicSystem::SpellType type)

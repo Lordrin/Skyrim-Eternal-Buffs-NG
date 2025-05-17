@@ -133,6 +133,14 @@ bool IsNotCastOnSelf(RE::SpellItem* spellItem) {
     return spellItem->data.delivery != RE::MagicSystem::Delivery::kSelf;
 }
 
+bool IsTemporaryEffect(RE::ActiveEffect* activeEffect) {
+    if (!activeEffect) {
+        logger::warn("IsTemporaryEffect: ActiveEffect is null.");
+        return false;
+    }
+    return activeEffect->duration > 0.0f && activeEffect->duration < Config::GetSingleton().GetPermanentSpellDuration();
+}
+
 std::string GetSpellSourcePluginName(RE::SpellItem* spellItem) {
     if (!spellItem) {
         SKSE::log::warn("GetSpellSourcePluginName: spellItem is null.");

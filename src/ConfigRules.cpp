@@ -1,6 +1,7 @@
 #include "ConfigRules.h"
 
 #include "ConfigParser.h"
+#include "SpellApplication.h"
 
 OrderedMap<std::string, RuleVariant> BaseRule::GetFields() {
     return {{"sourceFile", &sourceFile},       {"resolvedForm", resolvedForm},
@@ -64,7 +65,8 @@ bool BaseRule::IsCorrectRuleToForm(RE::TESForm* form) const {
 std::string BaseRule::ToString() const {
     // const auto fields = GetFields();
     return fmt::format(
-        "BaseRule: sourceFile = {}, FormName = {}, nameFilter = {}, isPermanentEnabled = {}, keywordFilter = {}, pluginFilter = {}, toggleable = {}",
+        "BaseRule: sourceFile = {}, FormName = {}, nameFilter = {}, isPermanentEnabled = {}, keywordFilter = {}, "
+        "pluginFilter = {}, toggleable = {}",
         sourceFile, resolvedForm ? resolvedForm->GetName() : "nullptr", nameFilter, isPermanentEnabled,
         Utilities::Join(keywordFilter, ", "), pluginFilter, toggleable);
 }
@@ -80,9 +82,22 @@ OrderedMap<std::string, RuleVariant> SpellRule::GetFields() {
 OrderedMap<std::string, std::function<void(const std::string&)>> SpellRule::GetParsers() {
     auto baseParsers = BaseRule::GetParsers();
     baseParsers.Concatenate_fast(
-        {{"durationFilter", [this](const std::string& value) { std::istringstream(value) >> durationFilter; }},
-         {"minDurationFilter", [this](const std::string& value) { std::istringstream(value) >> minDurationFilter; }},
-         {"magnitudeFilter", [this](const std::string& value) { std::istringstream(value) >> magnitudeFilter; }}});
+        {{"shouldReserveMagicka",
+          [this](const std::string& value) { shouldReserveMagicka = Parser::ParseBoolString(value); }},
+         {"durationFilter",
+          [this](const std::string& value) {
+              durationFilter = Parser::ParseBoolString(value);
+              ;
+          }},
+         {"minDurationFilter",
+          [this](const std::string& value) {
+              minDurationFilter = Parser::ParseBoolString(value);
+              ;
+          }},
+         {"magnitudeFilter", [this](const std::string& value) {
+              magnitudeFilter = Parser::ParseBoolString(value);
+              ;
+          }}});
     return baseParsers;
 }
 
@@ -137,6 +152,23 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
     if (magnitudeFilter != -1.0f) {
         activeEffect->magnitude = magnitudeFilter;  // Set the magnitude to the filter value
     }
+
+    // TODO: refactor this
+    if (!shouldReserveMagicka.has_value()) {
+        if (Config::GetSingleton().GetGeneralRule().reserveMagickaEnabled) {
+            float cost = activeEffect->spell->CalculateMagickaCost(RE::PlayerCharacter::GetSingleton());
+            logger::debug("ApplyRulesToSpell: Should reserve magicka cost global: {}", cost);
+            if (cost > 0) {
+                ApplyTemporaryDebuffToPlayer(cost);
+            }
+        }
+    } else if (shouldReserveMagicka.value()) {
+        float cost = activeEffect->spell->CalculateMagickaCost(RE::PlayerCharacter::GetSingleton());
+        logger::debug("ApplyRulesToSpell: Should reserve magicka: cost: {}", cost);
+        if (cost > 0) {
+            ApplyTemporaryDebuffToPlayer(cost);
+        }
+    }
 }
 
 std::string SpellRule::ToString() const {
@@ -186,8 +218,8 @@ bool FindSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spe
  * @param pluginName The plugin name to find the SpellRule for.
  * @param spellRule The SpellRule to populate if found.
  * @return True if the SpellRule was found, false otherwise.
- * @note This function searches for the SpellRule by the plugin name. If found, the SpellRule is copied into the spellRule
- * parameter.
+ * @note This function searches for the SpellRule by the plugin name. If found, the SpellRule is copied into the
+ * spellRule parameter.
  */
 bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule& spellRule) {
     auto spellRuleIt = Config::GetSingleton().GetSpellRules().find(pluginName);
@@ -231,6 +263,7 @@ OrderedMap<std::string, bool*> GeneralRule::GetFields() {
         {"greaterPowersEnabled", &greaterPowersEnabled},
         {"scrollsEnabled", &scrollsEnabled},
         {"recastableEnabled", &recastableEnabled},
+        {"reserveMagickaEnabled", &reserveMagickaEnabled},
     };
 }
 
@@ -251,6 +284,8 @@ OrderedMap<std::string, std::function<void(const std::string&, const std::string
          [this](const std::string& value, const std::string&) { scrollsEnabled = Parser::ParseBoolString(value); }},
         {"recastable",
          [this](const std::string& value, const std::string&) { recastableEnabled = Parser::ParseBoolString(value); }},
+        {"reservemagicka", [this](const std::string& value,
+                                  const std::string&) { reserveMagickaEnabled = Parser::ParseBoolString(value); }},
     };
 }
 
