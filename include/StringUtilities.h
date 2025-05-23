@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <string_view>
 
-namespace Utilities {
+namespace StringUtilities {
 
     /**
      * @brief Removes leading and trailing whitespace from a string.

@@ -126,12 +126,12 @@ void LogSpellItemDetails(RE::SpellItem* spellItem, const std::string& indent, co
     logger::debug("{}  Spell Type: {}", indent, static_cast<int>(spellItem->data.spellType));
     logger::debug("{}  Spell Delivery: {}", indent, static_cast<int>(spellItem->data.delivery));
     logger::debug("{}  Spell Casting Type: {}", indent, static_cast<int>(spellItem->data.castingType));
-    logger::debug("{}  Spell is non-recastable: {}", indent, IsNonRecastable(spellItem));
+    logger::debug("{}  Spell is non-recastable: {}", indent, SpellUtilities::IsNonRecastable(spellItem));
 #ifdef _DEBUG  
-    logger::debug("{}  Spell Type: {}", indent, ToString(spellItem->data.spellType));
-    logger::debug("{}  Spell Delivery: {}", indent, ToString(spellItem->data.delivery));
-    logger::debug("{}  Spell Casting Type: {}", indent, ToString(spellItem->data.castingType));
-    logger::debug("{}  Spell flags: {}", indent, ToString(spellItem->data.flags));
+    logger::debug("{}  Spell Type: {}", indent, SpellUtilities::ToString(spellItem->data.spellType));
+    logger::debug("{}  Spell Delivery: {}", indent, SpellUtilities::ToString(spellItem->data.delivery));
+    logger::debug("{}  Spell Casting Type: {}", indent, SpellUtilities::ToString(spellItem->data.castingType));
+    logger::debug("{}  Spell flags: {}", indent, SpellUtilities::ToString(spellItem->data.flags));
 #endif  // DEBUG
 }
 

@@ -1,6 +1,6 @@
 #include "StringUtilities.h"
 
-namespace Utilities {
+namespace StringUtilities {
 
     // --- TrimString Implementations ---
 

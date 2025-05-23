@@ -69,19 +69,19 @@ struct GeneralRule {
     OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GetParsers();
     std::vector<SpellDisableCheck> checks = {
         // checks for early return
-        {&shoutsEnabled, IsShout, "Shouts"},
-        {&lesserPowersEnabled, IsLesserPower, "Lesser Powers"},
-        {&greaterPowersEnabled, IsGreaterPower, "Greater Powers"},
-        {&summonsEnabled, IsSummon, "Summons"},
-        {&spellsEnabled, IsSpell, "Spells"},
-        {&scrollsEnabled, IsScroll, "Scrolls"},
-        {nullptr, IsConcentration, "Concentration spells"},  // Always disabled if concentration
+        {&shoutsEnabled, SpellUtilities::IsShout, "Shouts"},
+        {&lesserPowersEnabled, SpellUtilities::IsLesserPower, "Lesser Powers"},
+        {&greaterPowersEnabled, SpellUtilities::IsGreaterPower, "Greater Powers"},
+        {&summonsEnabled, SpellUtilities::IsSummon, "Summons"},
+        {&spellsEnabled, SpellUtilities::IsSpell, "Spells"},
+        {&scrollsEnabled, SpellUtilities::IsScroll, "Scrolls"},
+        {nullptr, SpellUtilities::IsConcentration, "Concentration spells"},  // Always disabled if concentration
         {nullptr,
          [](RE::SpellItem* spellItem) {
              return spellItem && (spellItem->data.flags & RE::SpellItem::SpellFlag::kFoodItem);
          },
          "Food items"},  // Always disabled if food flag is set
-        {&recastableEnabled, IsNonRecastable, "Spells that are not recastable"},
+        {&recastableEnabled, SpellUtilities::IsNonRecastable, "Spells that are not recastable"},
     };
 
     std::optional<std::string_view> ShouldReturnEarly(RE::SpellItem* spellItem) const;

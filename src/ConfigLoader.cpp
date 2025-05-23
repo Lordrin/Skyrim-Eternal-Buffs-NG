@@ -19,7 +19,7 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
 
         while (std::getline(configFile, line)) {
             lineNum++;
-            std::string trimmedLine = Utilities::TrimString(line);
+            std::string trimmedLine = StringUtilities::TrimString(line);
 
             // Skip comments and empty lines
             if (trimmedLine.empty() || trimmedLine[0] == ';' || trimmedLine[0] == '#') {
@@ -29,7 +29,7 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
             // Basic section handling (optional, could be used for context)
             if (trimmedLine[0] == '[' && trimmedLine.back() == ']') {
                 currentSection =
-                    Utilities::ToLower(Utilities::TrimString(trimmedLine.substr(1, trimmedLine.length() - 2)));
+                    StringUtilities::ToLower(StringUtilities::TrimString(trimmedLine.substr(1, trimmedLine.length() - 2)));
                 logger::debug("Entering section: [{}]", currentSection);
                 continue;
             }
@@ -42,8 +42,8 @@ void ConfigLoader::LoadConfigFile(const std::filesystem::path& filePath) {
                 continue;
             }
 
-            std::string keyword = Utilities::ToLower(Utilities::TrimString(trimmedLine.substr(0, equalsPos)));
-            std::string value = Utilities::TrimString(trimmedLine.substr(equalsPos + 1));
+            std::string keyword = StringUtilities::ToLower(StringUtilities::TrimString(trimmedLine.substr(0, equalsPos)));
+            std::string value = StringUtilities::TrimString(trimmedLine.substr(equalsPos + 1));
 
             try {
                 // Remove comment from value if present

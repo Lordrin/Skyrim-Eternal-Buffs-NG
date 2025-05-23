@@ -41,11 +41,11 @@ namespace Parser {
 
     RE::TESForm* TryResolveFormIDPlugin(const std::string& identifier, const std::string& configFileName,
                                         RE::TESDataHandler* dataHandler) {
-        auto formPluginPair = Utilities::SplitString(identifier, '~');
+        auto formPluginPair = StringUtilities::SplitString(identifier, '~');
         if (formPluginPair.size() == 2) {
             try {
-                RE::FormID localFormID = std::stoul(Utilities::TrimString(formPluginPair[0]), nullptr, 16);
-                std::string pluginName = Utilities::TrimString(formPluginPair[1]);
+                RE::FormID localFormID = std::stoul(StringUtilities::TrimString(formPluginPair[0]), nullptr, 16);
+                std::string pluginName = StringUtilities::TrimString(formPluginPair[1]);
                 RE::TESForm* resolvedForm = dataHandler->LookupForm(localFormID, pluginName);
                 if (resolvedForm) {
                     logger::debug("[TryResolveFormIDPlugin] Resolved FormID {:#010x} to '{}' (config: {})", localFormID,
@@ -63,7 +63,7 @@ namespace Parser {
 
     RE::TESForm* TryResolveEditorID(const std::string& identifier, const std::string& configFileName) {
         try {
-            std::string_view sv(Utilities::TrimString(identifier));
+            std::string_view sv(StringUtilities::TrimString(identifier));
             RE::TESForm* resolvedForm = RE::TESForm::LookupByEditorID(sv);
             if (resolvedForm) {
                 logger::debug("Resolved EditorID '{}' to FormID {:X} (config: {})", identifier,
@@ -105,7 +105,7 @@ namespace Parser {
             return identifier;
         }
         if (identifier.starts_with("*")) {
-            auto formPluginPair = Utilities::SplitString(identifier, '~');
+            auto formPluginPair = StringUtilities::SplitString(identifier, '~');
             if (formPluginPair.size() == 2) {
                 return formPluginPair[1];
             }
@@ -127,7 +127,7 @@ namespace Parser {
     }
 
     SpellRule ParseSpellRule(const std::string& configLine, const std::string& configFileName) {
-        std::vector<std::string> parts = Utilities::SplitString(configLine, '|');
+        std::vector<std::string> parts = StringUtilities::SplitString(configLine, '|');
 
         if (parts.empty()) {
             return {};
@@ -144,7 +144,7 @@ namespace Parser {
                          spellRule.resolvedForm->GetName(), configFileName);
         }
 
-        Config::GetSingleton().GetSpellRules().insert({Utilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
+        Config::GetSingleton().GetSpellRules().insert({StringUtilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
 
         auto to_print = spellRule.ToString();
         logger::debug("{}", to_print);
@@ -152,7 +152,7 @@ namespace Parser {
     }
 
     void ParseLoggingLevelRule(const std::string& value, const std::string& configFileName) {
-        std::string loggingLevel = Utilities::ToLower(Utilities::TrimString(value));
+        std::string loggingLevel = StringUtilities::ToLower(StringUtilities::TrimString(value));
         spdlog::level::level_enum level = spdlog::level::from_str(loggingLevel);
         if (level == spdlog::level::n_levels) {
             logger::warn("Unknown logging level '{}' in config file '{}'. Defaulting to 'info'.", loggingLevel,
@@ -182,5 +182,5 @@ namespace Parser {
         }
     }
 
-    bool ParseBoolString(const std::string& value) { return Utilities::ToLower(value) == "true" || value == "1"; }
+    bool ParseBoolString(const std::string& value) { return StringUtilities::ToLower(value) == "true" || value == "1"; }
 }

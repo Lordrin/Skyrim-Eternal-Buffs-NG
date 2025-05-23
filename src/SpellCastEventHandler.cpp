@@ -40,7 +40,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     if (!IsSpellRuleDefined(spellItem)) {  // Rule defined for this specific spell
         if (auto disableReason = Config::GetSingleton().GetGeneralRule().ShouldReturnEarly(spellItem)) {
             logger::debug("Skipping spell [{}]: Reason: {}", spellItem->GetName(), disableReason.value());
-            return RE::BSEventNotifyControl::kContinue; // Skip processing this spell
+            return RE::BSEventNotifyControl::kContinue;  // Skip processing this spell
         }
     }
 
@@ -50,7 +50,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     }
 
     LogAllActiveEffectsOfSpell(spellItem);
-    LogKeywords(spellItem, "      ");       
+    LogKeywords(spellItem, "      ");
 
     auto magicTarget = playerActor->GetMagicTarget();
     if (!magicTarget) {
@@ -92,6 +92,7 @@ RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellC
     // Schedule the ConvertToPermanentEffectOnPlayer function to run on the next UI update cycle
     auto taskInterface = SKSE::GetTaskInterface();
     if (taskInterface) {
+        logger::info("Scheduling ConvertToPermanentEffectOnPlayer");
         taskInterface->AddUITask([info]() { ConvertToPermanentEffectOnPlayer(info); });
     } else {
         logger::error("Failed to get TaskInterface, cannot schedule effect check.");

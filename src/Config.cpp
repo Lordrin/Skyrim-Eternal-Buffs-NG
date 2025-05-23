@@ -14,7 +14,7 @@ OrderedMap<std::string, std::function<void(const std::string&, const std::string
             {"logginglevel",
              [this](const std::string& value, const std::string&) {
                  try {
-                     std::string loggingLevel = Utilities::ToLower(Utilities::TrimString(value));
+                     std::string loggingLevel = StringUtilities::ToLower(StringUtilities::TrimString(value));
                      spdlog::level::level_enum level = spdlog::level::from_str(loggingLevel);
                      if (level == spdlog::level::n_levels) {
                          logger::warn("Unknown logging level '{}'. Defaulting to 'info'.", loggingLevel);

@@ -40,7 +40,7 @@ OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetPa
         {"isPermanentEnabled",
          [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> isPermanentEnabled; }},
         {"toggleable", [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> toggleable; }},
-        {"keywordFilter", [this](const std::string& value) { keywordFilter = Utilities::SplitString(value, ','); }}};
+        {"keywordFilter", [this](const std::string& value) { keywordFilter = StringUtilities::SplitString(value, ','); }}};
 }
 
 /**
@@ -68,7 +68,7 @@ std::string BaseRule::ToString() const {
         "BaseRule: sourceFile = {}, FormName = {}, nameFilter = {}, isPermanentEnabled = {}, keywordFilter = {}, "
         "pluginFilter = {}, toggleable = {}",
         sourceFile, resolvedForm ? resolvedForm->GetName() : "nullptr", nameFilter, isPermanentEnabled,
-        Utilities::Join(keywordFilter, ", "), pluginFilter, toggleable);
+        StringUtilities::Join(keywordFilter, ", "), pluginFilter, toggleable);
 }
 
 OrderedMap<std::string, RuleVariant> SpellRule::GetFields() {
@@ -153,20 +153,18 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
         activeEffect->magnitude = magnitudeFilter;  // Set the magnitude to the filter value
     }
 
-    // TODO: refactor this
+    // TODO: refactor this and change to debug
     if (!shouldReserveMagicka.has_value()) {
         if (Config::GetSingleton().GetGeneralRule().reserveMagickaEnabled) {
-            float cost = activeEffect->spell->CalculateMagickaCost(RE::PlayerCharacter::GetSingleton());
-            logger::debug("ApplyRulesToSpell: Should reserve magicka cost global: {}", cost);
-            if (cost > 0) {
-                ApplyTemporaryDebuffToPlayer(cost);
+            logger::info("ApplyRulesToSpell: Should reserve magicka cost global");
+            if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
+                ApplyReserveSpellToPlayer(spellItem);
             }
         }
     } else if (shouldReserveMagicka.value()) {
-        float cost = activeEffect->spell->CalculateMagickaCost(RE::PlayerCharacter::GetSingleton());
-        logger::debug("ApplyRulesToSpell: Should reserve magicka: cost: {}", cost);
-        if (cost > 0) {
-            ApplyTemporaryDebuffToPlayer(cost);
+        logger::info("ApplyRulesToSpell: Should reserve magicka: cost");
+        if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
+            ApplyReserveSpellToPlayer(spellItem);
         }
     }
 }
@@ -176,12 +174,12 @@ std::string SpellRule::ToString() const {
     return fmt::format("{} -- SpellRule: durationFilter = {}, minDurationFilter = {}, magnitudeFilter = {}", toLog,
                        durationFilter, minDurationFilter, magnitudeFilter, sourceFile,
                        resolvedForm ? resolvedForm->GetName() : "nullptr", nameFilter, isPermanentEnabled,
-                       Utilities::Join(keywordFilter, ", "));
+                       StringUtilities::Join(keywordFilter, ", "));
 }
 
 SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
     auto spellRuleIt =
-        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+        Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
         RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
         if (spellItem && spellRuleIt->second.IsCorrectRuleToSpell(spellItem)) {
@@ -202,7 +200,7 @@ SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
  */
 bool FindSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule) {
     auto spellRuleIt =
-        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+        Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
         spellRule = spellRuleIt->second;
         RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
@@ -232,7 +230,7 @@ bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule&
 
 bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
     auto spellRuleIt =
-        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(spellItem->GetFullName()));
+        Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(spellItem->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
         spellRule = spellRuleIt->second;
         if (spellRule.IsCorrectRuleToSpell(spellItem)) {
@@ -244,7 +242,7 @@ bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
 
 bool IsSpellRuleDefined(RE::SpellItem* spellItem) {
     auto spellRuleIt =
-        Config::GetSingleton().GetSpellRules().find(Utilities::RemoveWhitespace(spellItem->GetFullName()));
+        Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(spellItem->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
         if (spellRuleIt->second.IsCorrectRuleToSpell(spellItem)) {
             return true;

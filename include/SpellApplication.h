@@ -21,10 +21,13 @@ enum class SpellHandlingAction {
 
 void DispellAllSavedSpellsFromActor(RE::Actor& actor);
 void DispellAllSavedSpellsFromPlayer();
+void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem);
 
 void ApplyAllSavedSpellsToActor(RE::Actor& actor);
 void ApplyAllSavedPermanentSpellsToPlayer();
 
-void ApplyTemporaryDebuffToPlayer(float magickaCost);
+void ApplyReserveSpellToPlayer(RE::SpellItem* spellToApply);
 
 void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo);
+
+void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect);
