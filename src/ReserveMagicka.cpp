@@ -1,6 +1,6 @@
 #include "ReserveMagicka.h"
 
-float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem){
+float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem) {
     if (!spellItem) {
         SKSE::log::error("Spell not found for temporary debuff application.");
         return;
@@ -13,34 +13,99 @@ float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem){
     }
 
     float spellCost = spellItem->CalculateMagickaCost(player);
-    //TODO expand this with config settings
+    // TODO expand this with config settings
 
     return spellCost;
-
 }
 
-void ApplyReserveSpellToPlayer(RE::SpellItem* spellItem){
-
-}
-
-RE::Effect& CreateReserveSpellEffect(RE::SpellItem* spellItem){
-    auto datahandler = RE::TESDataHandler::GetSingleton();
-    if (!datahandler) {
-        SKSE::log::error("DataHandler is null.");
+ReserveMagicka* AlreadyReservedSpell(RE::SpellItem* spellItem, RE::PlayerCharacter* player, float spellCost) {
+    // Get the player's MagicCaster component for the desired hand (e.g., kRightHand)
+    // Or if the spell is 'Self' delivery, a 'self' caster might be more appropriate,
+    // but often using a hand caster works well for Fire and Forget spells.
+    RE::MagicCaster* magicCaster = player->GetMagicCaster(RE::MagicSystem::CastingSource::kRightHand);
+    if (!magicCaster) {
+        // Try other hand or a default caster if right hand fails
+        magicCaster = player->GetMagicCaster(RE::MagicSystem::CastingSource::kLeftHand);
+        if (!magicCaster) {
+            SKSE::log::warn("Could not get a valid MagicCaster for the player.");
+            return;
+        }
     }
 
+    RE::MagicTarget* magicTarget = player->GetMagicTarget();
+    if (!magicTarget) {
+        SKSE::log::warn("Could not get a valid MagicTarget for the player.");
+        return;
+    }
+
+    std::unordered_map<RE::FormID, ReserveMagicka>& reservedSpells = Config::GetSingleton().GetReservedSpells();
+
+    auto AlreadyReservedspell = reservedSpells.find(spellItem->GetFormID());
+
+    if (AlreadyReservedspell != reservedSpells.end()) {
+        logger::info("Spell {} is already reserved. With cost {}", spellItem->GetName(), spellCost);
+        logger::info("Already reserved spell cost {}", AlreadyReservedspell->second.spellCost);
+        return &AlreadyReservedspell->second;
+        // if (AlreadyReservedspell->second.spellCost == spellCost) {
+        //     SKSE::log::info("Spell {} is already reserved. Skipping.", spellItem->GetName());
+        //     return;
+        // } else {
+        //     DispelSpellItemFromActor(player, AlreadyReservedspell->second.reserveSpellitem);
+        // }
+    }
+    return nullptr;
+}
+
+bool HandleAlreadyReservedSpell(ReserveMagicka* AlreadyReservedspell, RE::SpellItem* spellItem, RE::PlayerCharacter* player, float spellCost) {
+    if (AlreadyReservedspell->spellCost == spellCost) {
+        SKSE::log::info("Spell {} is already reserved. Skipping.", spellItem->GetName());
+        // Should return early
+        return true;
+    } else {
+        SpellUtilities::DispelSpellItemFromActor(player, AlreadyReservedspell->reserveSpellitem);
+        return false;
+    }
+}
+
+RE::TESForm& GetReserveSpellForm() {
     RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
     if (reserveEffectFormID == 0) {
         logger::warn("ReserveEffectFormID is not set. Returning early.");
         return;
     }
 
-    auto form = datahandler->LookupForm(reserveEffectFormID, "EternalBuffsNG.esp");
+    auto datahandler = RE::TESDataHandler::GetSingleton();
+    if (!datahandler) {
+        SKSE::log::error("DataHandler is null.");
+    }
+
+    RE::TESForm* form = datahandler->LookupForm(reserveEffectFormID, "EternalBuffsNG.esp");
     if (!form) {
         SKSE::log::error("Custom spell was not found with FormID {:#010x}.", reserveEffectFormID);
+        // TODO throw error here and catch later
         return;
     }
 
+    return *form;
+}
+
+RE::EffectSetting& GetReserveSpellEffectSetting() {
+    RE::TESForm& form = GetReserveSpellForm();
+    RE::EffectSetting* customMagicEffect = form.As<RE::EffectSetting>();
+    if (!customMagicEffect) {
+        SKSE::log::error("Spell is null.");
+        return; // TODO throw error here
+    }
+    return *customMagicEffect;
+}
+
+void ApplyReserveSpellToPlayer(RE::SpellItem* spellItem) {}
+
+RE::Effect* CreateReserveSpellEffect(RE::SpellItem* spellItem) {
+    auto datahandler = RE::TESDataHandler::GetSingleton();
+    if (!datahandler) {
+        SKSE::log::error("DataHandler is null.");
+    }
     // Create a dynamic spell instance
     RE::ConcreteFormFactory<RE::SpellItem, RE::FormType::Spell>* formFactory =
         RE::IFormFactory::GetConcreteFormFactoryByType<RE::SpellItem>();
@@ -67,12 +132,7 @@ RE::Effect& CreateReserveSpellEffect(RE::SpellItem* spellItem){
     // reserveSpellName = spellItem->GetName();
     dynamicCarrierSpell->fullName =
         RE::BSFixedString(spellItem->GetName());  // Set a unique (even if internal) name for debugging if you want
-    RE::EffectSetting* customMagicEffect = form->As<RE::EffectSetting>();
-    if (!customMagicEffect) {
-        SKSE::log::error("Spell is null.");
-    }
 
-    logger::info("Effect123: {}", customMagicEffect->fullName);
     // std::string newFullName = std::string(customMagicEffect->fullName.c_str()) + " - " +
     // spellToReserve->GetName(); customMagicEffect->fullName = RE::BSFixedString(newFullName.c_str());
 
@@ -85,12 +145,56 @@ RE::Effect& CreateReserveSpellEffect(RE::SpellItem* spellItem){
     // array and deletes each RE::Effect* it contains.
     if (!newEffectItem) {
         SKSE::log::error("Failed to allocate RE::Effect item!");
-        // Potentially delete dynamicSpell if it's not yet fully integrated
+        // TODO throw error here and catch later
+        //  Potentially delete dynamicSpell if it's not yet fully integrated
         delete newEffectItem;
         delete dynamicCarrierSpell;
-        return;
+        return nullptr;
     }
 
-    return *newEffectItem;
+    return newEffectItem;
+}
+void LinkReserveSpellToEffect(RE::Effect* effect, RE::SpellItem* spellItem) {
+    try {
+        float spellCost = CalculateMagickaForReserveSpell(spellItem);
+        RE::EffectSetting& customMagicEffect = GetReserveSpellEffectSetting();
+        // TODO delete newEffectItem on error
 
+        // Set the effect's parameters for this spell
+        // newEffectItem->effectItem.magnitude = spellCost * -1.0f;
+        effect->effectItem.magnitude = spellCost;
+        effect->effectItem.duration = static_cast<uint32_t>(Config::GetSingleton().GetPermanentSpellDuration());
+        effect->effectItem.area = 0;             // 0 area for a self-target effect
+        effect->baseEffect = &customMagicEffect;  // ** This is where you link your MGEF **
+
+        dynamicCarrierSpell->effects.push_back(effect);
+        // float cost = dynamicCarrierSpell->CalculateMagickaCost(player);
+
+        magicCaster->CastSpellImmediate(dynamicCarrierSpell, true, player, 1.0f, false, effect->effectItem.magnitude,
+                                        nullptr);
+        logger::info("Reserved spell: {} applied with: {} - FormID {:#010x}", spellToReserve->GetName(),
+                     dynamicCarrierSpell->GetName(), dynamicCarrierSpell->GetFormID());
+
+        // Config::GetSingleton().GetReservedSpells().insert({spellToReserve, dynamicCarrierSpell});
+        // auto& reservedSpells = Config::GetSingleton().GetReservedSpells();
+        reservedSpells.insert({spellToReserve->GetFormID(), {spellToReserve, dynamicCarrierSpell, spellCost}});
+
+        logger::info("reserved Spell Inserted");
+        logger::info("Reserved Spells:");
+        for (const auto& pair : reservedSpells) {
+            logger::info("  {:#010x}:", pair.first);
+            logger::info("    Spell Item: {}", pair.second.spellItem ? pair.second.spellItem->GetName() : "nullptr");
+            logger::info("    Reserve Spell Item: {}",
+                         pair.second.reserveSpellitem ? pair.second.reserveSpellitem->GetName() : "nullptr");
+            logger::info("    Reserve Spell FormID: {:#010x}", pair.second.reserveSpellitem->GetFormID());
+            logger::info("    Spell Cost: {}", pair.second.spellCost);
+        }
+
+    } catch (std::exception& e) {
+        delete effect;
+        delete dynamicCarrierSpell;
+        SKSE::log::error("Failed to apply spell: {}", e.what());
+    }
+
+    SKSE::log::info("Attempted to apply temporary debuff spell to player.");
 }

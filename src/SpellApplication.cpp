@@ -125,7 +125,7 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
             SKSE::log::info("Spell {} is already reserved. Skipping.", spellToReserve->GetName());
             return;
         } else {
-            DispelSpellItemFromActor(player, AlreadyReservedspell->second.reserveSpellitem);
+            SpellUtilities::DispelSpellItemFromActor(player, AlreadyReservedspell->second.reserveSpellitem);
         }
     }
 
@@ -221,28 +221,28 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
     SKSE::log::info("Attempted to apply temporary debuff spell to player.");
 }
 
-void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
-    logger::info("Dispel called for spell: {}", spellItem->GetName());
-    if (!actor || !spellItem) {
-        logger::error("DispelSpellItemFromActor: Invalid arguments.");
-        return;
-    }
+// void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
+//     logger::info("Dispel called for spell: {}", spellItem->GetName());
+//     if (!actor || !spellItem) {
+//         logger::error("DispelSpellItemFromActor: Invalid arguments.");
+//         return;
+//     }
 
-    RE::MagicTarget* magicTarget = actor->GetMagicTarget();
-    if (!magicTarget) {
-        logger::error("DispelSpellItemFromActor: Actor has no MagicTarget.");
-        return;
-    }
+//     RE::MagicTarget* magicTarget = actor->GetMagicTarget();
+//     if (!magicTarget) {
+//         logger::error("DispelSpellItemFromActor: Actor has no MagicTarget.");
+//         return;
+//     }
 
-    RE::MagicItem* spell = spellItem->As<RE::MagicItem>();
-    if (!spell) {
-        logger::error("DispelSpellItemFromActor: SpellItem is not a MagicItem.");
-        return;
-    }
+//     RE::MagicItem* spell = spellItem->As<RE::MagicItem>();
+//     if (!spell) {
+//         logger::error("DispelSpellItemFromActor: SpellItem is not a MagicItem.");
+//         return;
+//     }
 
-    RE::ActorHandle actorHandle = actor->GetHandle();
-    magicTarget->DispelEffect(spell, actorHandle);
-}
+//     RE::ActorHandle actorHandle = actor->GetHandle();
+//     magicTarget->DispelEffect(spell, actorHandle);
+// }
 
 void DispelReserveSpellFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
     if (!actor || !spellItem) {

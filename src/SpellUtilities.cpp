@@ -216,4 +216,26 @@ namespace SpellUtilities {
         return "[Error: Unidentified Plugin Source]";
     }
 
+    void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
+    logger::info("Dispel called for spell: {}", spellItem->GetName());
+    if (!actor || !spellItem) {
+        logger::error("DispelSpellItemFromActor: Invalid arguments.");
+        return;
+    }
+
+    RE::MagicTarget* magicTarget = actor->GetMagicTarget();
+    if (!magicTarget) {
+        logger::error("DispelSpellItemFromActor: Actor has no MagicTarget.");
+        return;
+    }
+
+    RE::MagicItem* spell = spellItem->As<RE::MagicItem>();
+    if (!spell) {
+        logger::error("DispelSpellItemFromActor: SpellItem is not a MagicItem.");
+        return;
+    }
+
+    RE::ActorHandle actorHandle = actor->GetHandle();
+    magicTarget->DispelEffect(spell, actorHandle);
+}
 }

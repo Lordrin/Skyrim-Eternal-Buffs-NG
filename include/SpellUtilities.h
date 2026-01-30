@@ -15,6 +15,7 @@ namespace SpellUtilities {
     bool IsNotCastOnSelf(RE::SpellItem* spellItem);
     bool IsTemporaryEffect(RE::ActiveEffect* activeEffect);
     std::string GetSpellSourcePluginName(RE::SpellItem* spellItem);
+    void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem);
 
 #ifdef _DEBUG
     static const char* ToString(RE::MagicSystem::SpellType type) {
