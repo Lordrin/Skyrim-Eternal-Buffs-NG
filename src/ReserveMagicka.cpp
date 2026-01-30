@@ -27,7 +27,7 @@ ReserveMagicka* AlreadyReservedSpell(RE::SpellItem* spellItem, RE::PlayerCharact
 }
 
 bool HandleAlreadyReservedSpell(ReserveMagicka* AlreadyReservedspell, RE::SpellItem* spellItem,
-                                RE::PlayerCharacter* player, float spellCost) {
+                                RE::PlayerCharacter* player, float spellCost, bool isSuppressed) {
     if (AlreadyReservedspell->reserveCost == spellCost) {
         SKSE::log::info("Spell {} is already reserved. Skipping.", spellItem->GetName());
         // Should return early
@@ -126,7 +126,7 @@ RE::Effect* CreateReserveSpellEffect() {
     return newEffectItem;
 }
 void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Effect* effect, RE::Actor* player,
-                              RE::SpellItem* spellItem, float reserveCost) {
+                              RE::SpellItem* spellItem, float reserveCost, bool isSuppressed) {
     try {
         RE::EffectSetting& customMagicEffect = GetReserveSpellEffectSetting();
 
@@ -162,6 +162,7 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Effect* ef
 
         magicCaster->CastSpellImmediate(dynamicCarrierSpell, true, player, 1.0f, false, effect->effectItem.magnitude,
                                         nullptr);
+
         logger::info("Reserved spell: {} applied with: {} - FormID {:#010x}", spellItem->GetName(),
                      dynamicCarrierSpell->GetName(), dynamicCarrierSpell->GetFormID());
 
@@ -169,6 +170,7 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Effect* ef
         // auto& reservedSpells = Config::GetSingleton().GetReservedSpells();
         std::unordered_map<RE::FormID, ReserveMagicka>& reservedSpells = Config::GetSingleton().GetReservedSpells();
         reservedSpells.insert({spellItem->GetFormID(), {spellItem, dynamicCarrierSpell, reserveCost}});
+
 
         logger::info("reserved Spell Inserted");
         logger::info("Reserved Spells:");
@@ -190,6 +192,60 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Effect* ef
     SKSE::log::info("Attempted to apply temporary debuff spell to player.");
 }
 
+bool IsSpellSuppressed(RE::SpellItem* spellItem, RE::PlayerCharacter* player) {
+    if (player->IsDead()) {
+        logger::warn("Actor is dead. Cannot log active effects.");
+        return;
+    }
+
+    RE::MagicTarget* magicTarget = player->GetMagicTarget();
+    if (!magicTarget) {
+        logger::warn("ApplyAllSavedSpellsToActor: Actor has no MagicTarget.");
+        return;
+    }
+
+    RE::BSSimpleList<RE::ActiveEffect*>* activeEffects = magicTarget->GetActiveEffectList();
+    if (!activeEffects || activeEffects->empty()) {
+        logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
+        return;
+    }
+
+    std::set<RE::FormID> activeSpells;
+    // std::map<RE::FormID, RE::SpellItem*> activeSpells;
+    // Iterate over the active effects and check for matches in the set
+    for (RE::ActiveEffect* activeEffect : *activeEffects) {
+        // Check if the effect is "Inactive" (Suppressed)
+        bool isInactive = activeEffect->flags.all(RE::ActiveEffect::Flag::kInactive);
+        // Check if it's been dispelled (waiting to be deleted)
+        bool isDispelled = activeEffect->flags.all(RE::ActiveEffect::Flag::kDispelled);
+
+        if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject() || isInactive || isDispelled) {
+            continue;
+        }
+
+        RE::FormID spellFormID = activeEffect->spell->GetFormID();
+        activeSpells.insert(spellFormID);
+    }
+
+    return activeSpells.find(spellItem->GetFormID()) != activeSpells.end();
+}
+
+void setSpellItemActiveEffectsToInactive(RE::SpellItem* spellItem, RE::PlayerCharacter* player) {
+    std::vector<RE::ActiveEffect*> activeEffects = SpellUtilities::GetActiveEffectsOnActorFromSpellItem(player, spellItem);
+
+    for (RE::ActiveEffect* activeEffect : activeEffects) {
+        activeEffect->flags.set(RE::ActiveEffect::Flag::kInactive);
+    }
+}
+
+void setSpellItemActiveEffectsToActive(RE::SpellItem* spellItem, RE::PlayerCharacter* player) {
+    std::vector<RE::ActiveEffect*> activeEffects = SpellUtilities::GetActiveEffectsOnActorFromSpellItem(player, spellItem);
+
+    for (RE::ActiveEffect* activeEffect : activeEffects) {
+        activeEffect->flags.reset(RE::ActiveEffect::Flag::kInactive);
+    }
+}
+
 void ApplyReserveSpellToPlayer2(RE::SpellItem* spellItem) {
     try {
         if (!spellItem) {
@@ -206,15 +262,18 @@ void ApplyReserveSpellToPlayer2(RE::SpellItem* spellItem) {
         float reserveCost = CalculateMagickaForReserveSpell(spellItem, player);
         ReserveMagicka* alreadyReservedSpell = AlreadyReservedSpell(spellItem, player, reserveCost);
 
+        bool isSupressed = IsSpellSuppressed(spellItem, player);
+
         // If it already exists and has the same cost, then skip
-        if (alreadyReservedSpell && HandleAlreadyReservedSpell(alreadyReservedSpell, spellItem, player, reserveCost)) {
+        if (alreadyReservedSpell && HandleAlreadyReservedSpell(alreadyReservedSpell, spellItem, player, reserveCost, isSupressed)) {
             return;
         }
+        
 
         RE::SpellItem* spellReserveCarrier = CreateReserveSpellCarrier(spellItem);
         RE::Effect* spellReserveEffect = CreateReserveSpellEffect();
 
-        LinkReserveSpellToEffect(spellReserveCarrier, spellReserveEffect, player, spellItem, reserveCost);
+        LinkReserveSpellToEffect(spellReserveCarrier, spellReserveEffect, player, spellItem, reserveCost, isSupressed);
     } catch (std::exception& e) {
         SKSE::log::error("Failed to apply reserve spell: {}", e.what());
     }

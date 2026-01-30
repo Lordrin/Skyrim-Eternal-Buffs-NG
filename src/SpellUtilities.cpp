@@ -217,25 +217,62 @@ namespace SpellUtilities {
     }
 
     void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
-    logger::info("Dispel called for spell: {}", spellItem->GetName());
-    if (!actor || !spellItem) {
-        logger::error("DispelSpellItemFromActor: Invalid arguments.");
-        return;
+        logger::info("Dispel called for spell: {}", spellItem->GetName());
+        if (!actor || !spellItem) {
+            logger::error("DispelSpellItemFromActor: Invalid arguments.");
+            return;
+        }
+
+        RE::MagicTarget* magicTarget = actor->GetMagicTarget();
+        if (!magicTarget) {
+            logger::error("DispelSpellItemFromActor: Actor has no MagicTarget.");
+            return;
+        }
+
+        RE::MagicItem* spell = spellItem->As<RE::MagicItem>();
+        if (!spell) {
+            logger::error("DispelSpellItemFromActor: SpellItem is not a MagicItem.");
+            return;
+        }
+
+        RE::ActorHandle actorHandle = actor->GetHandle();
+        magicTarget->DispelEffect(spell, actorHandle);
     }
 
-    RE::MagicTarget* magicTarget = actor->GetMagicTarget();
-    if (!magicTarget) {
-        logger::error("DispelSpellItemFromActor: Actor has no MagicTarget.");
-        return;
-    }
+    std::vector<RE::ActiveEffect*> GetActiveEffectsOnActorFromSpellItem(RE::Actor* actor, RE::SpellItem* spellItem) {
+        if (!actor || !spellItem) {
+            logger::error("DispelSpellItemFromActor: Invalid arguments.");
+            return;
+        }
+        if (actor->IsDead()) {
+            logger::warn("Actor is dead. Cannot log active effects.");
+            return;
+        }
 
-    RE::MagicItem* spell = spellItem->As<RE::MagicItem>();
-    if (!spell) {
-        logger::error("DispelSpellItemFromActor: SpellItem is not a MagicItem.");
-        return;
-    }
+        RE::MagicTarget* magicTarget = actor->GetMagicTarget();
+        if (!magicTarget) {
+            logger::warn("ApplyAllSavedSpellsToActor: Actor has no MagicTarget.");
+            return;
+        }
 
-    RE::ActorHandle actorHandle = actor->GetHandle();
-    magicTarget->DispelEffect(spell, actorHandle);
-}
+        RE::BSSimpleList<RE::ActiveEffect*>* activeEffects = magicTarget->GetActiveEffectList();
+        if (!activeEffects || activeEffects->empty()) {
+            logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
+            return;
+        }
+
+        std::vector<RE::ActiveEffect*> activeEffectsOnActorFromSpell;
+
+        for (RE::ActiveEffect* activeEffect : *activeEffects) {
+            if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject()) {
+                continue;
+            }
+
+            if (activeEffect->spell->GetFormID() == spellItem->GetFormID()) {
+                activeEffectsOnActorFromSpell.push_back(activeEffect);
+            }
+        }
+
+        return activeEffectsOnActorFromSpell;
+    }
 }

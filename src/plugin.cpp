@@ -186,7 +186,8 @@
 //     // This is a common pattern:
 //     magicCaster->CastSpellImmediate(dynamicCarrierSpell, true, player, 1.0f, false, -50.0f, player);
 //     // A simpler overload if available for self-casting:
-//     // magicCaster->CastSpellImmediate(spellToApply, false, player); // This might be what you look for in CommonLibSSE
+//     // magicCaster->CastSpellImmediate(spellToApply, false, player); // This might be what you look for in
+//     CommonLibSSE
 
 //     // Note: CastSpellImmediate might have different overloads. You'll need to find the one that suits
 //     // casting a spell from source (caster) onto a target (player).
@@ -211,6 +212,69 @@
 //     SKSE::log::info("Attempted to apply temporary debuff spell to player.");
 // }
 
+struct OnAddHook {
+    static void Install() {
+        // Index 0x2 is OnAdd (0 is Destructor, 1 is AdjustForPerks)
+        REL::Relocation<std::uintptr_t> vtbl{ RE::VTABLE_ActiveEffect[0] };
+        _OnAdd = vtbl.write_vfunc(0x2, &Hook_OnAdd);
+    }
+
+private:
+    static void Hook_OnAdd(RE::ActiveEffect* a_this, RE::MagicTarget* a_target) {
+        // TEST: Log to the SKSE log file
+        if (a_this->GetBaseObject()) {
+            SKSE::log::info("Effect added: {}", a_this->GetBaseObject()->GetName());
+        }
+
+        // Always call the original!
+        _OnAdd(a_this, a_target);
+    }
+
+    static inline REL::Relocation<decltype(&RE::ActiveEffect::OnAdd)> _OnAdd;
+};
+
+struct HandleEventHook {
+    static void thunk(RE::ActiveEffect* a_this, const RE::BSFixedString& a_eventName) {
+        if (a_this->spell) {
+            SKSE::log::info("Spell {} received event: {}", a_this->spell->GetName(), a_eventName.c_str());
+        }
+
+        // Always call the original!
+        func(a_this, a_eventName);
+    }
+
+    static inline REL::Relocation<decltype(thunk)> func;
+
+    static void Install() {
+        REL::Relocation<std::uintptr_t> vTable{RE::VTABLE_ActiveEffect[0]};
+        // 0x0D from your snippet
+        func = vTable.write_vfunc(0x0D, thunk);
+    }
+};
+
+struct CompareHook {
+    static std::int32_t thunk(RE::ActiveEffect* a_this, RE::ActiveEffect* a_other) {
+        if (a_this->spell && a_other->spell) {
+            SKSE::log::info("Comparing Spell: {} vs {}", a_this->spell->GetName(), a_other->spell->GetName());
+        }
+
+        // Call the original engine logic
+        std::int32_t result = func(a_this, a_other);
+
+        SKSE::log::info("Result: {} ({} wins)", result, result >= 0 ? "Original" : "New");
+
+        return result;
+    }
+
+    static inline REL::Relocation<decltype(thunk)> func;
+
+    static void Install() {
+        REL::Relocation<std::uintptr_t> vTable{RE::VTABLE_ActiveEffect[0]};
+        // 0x0C from your snippet
+        func = vTable.write_vfunc(0x0C, thunk);
+    }
+};
+
 void SetupLog() {
     auto logsFolder = logger::log_directory();
     if (!logsFolder) {
@@ -233,6 +297,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
     logger::info("Game version : {}", skse->RuntimeVersion().string());
 
     SKSE::Init(skse);
+    OnAddHook::Install();
     // Install();
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
@@ -249,10 +314,10 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
                 logger::info("Loaded spell rule: {}", spellRule.first);
                 logger::info("{}", spellRule.second.ToString());
             }
-            //TODO populate form
-            // skyrimHwnd = ::FindWindowA("Skyrim Special Edition", nullptr);
-            // if (!skyrimHwnd) skyrimHwnd = ::FindWindowA("Skyrim", nullptr);
-            // if (!skyrimHwnd) skyrimHwnd = ::FindWindowA("SkyrimSE", nullptr);  // rare, but some mods use this
+            // TODO populate form
+            //  skyrimHwnd = ::FindWindowA("Skyrim Special Edition", nullptr);
+            //  if (!skyrimHwnd) skyrimHwnd = ::FindWindowA("Skyrim", nullptr);
+            //  if (!skyrimHwnd) skyrimHwnd = ::FindWindowA("SkyrimSE", nullptr);  // rare, but some mods use this
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
             if (!Config::GetSingleton().GetGeneralRule().enabled) {
