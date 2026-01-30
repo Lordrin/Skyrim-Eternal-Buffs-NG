@@ -1,14 +1,8 @@
 #include "ReserveMagicka.h"
 
-float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem) {
+float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem, RE::PlayerCharacter* player) {
     if (!spellItem) {
         SKSE::log::error("Spell not found for temporary debuff application.");
-        return;
-    }
-
-    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-    if (!player) {
-        SKSE::log::error("Player not found for temporary debuff application.");
         return;
     }
 
@@ -25,7 +19,7 @@ ReserveMagicka* AlreadyReservedSpell(RE::SpellItem* spellItem, RE::PlayerCharact
 
     if (AlreadyReservedspell != reservedSpells.end()) {
         logger::info("Spell {} is already reserved. With cost {}", spellItem->GetName(), spellCost);
-        logger::info("Already reserved spell cost {}", AlreadyReservedspell->second.spellCost);
+        logger::info("Already reserved spell cost {}", AlreadyReservedspell->second.reserveCost);
         return &AlreadyReservedspell->second;
         // if (AlreadyReservedspell->second.spellCost == spellCost) {
         //     SKSE::log::info("Spell {} is already reserved. Skipping.", spellItem->GetName());
@@ -39,7 +33,7 @@ ReserveMagicka* AlreadyReservedSpell(RE::SpellItem* spellItem, RE::PlayerCharact
 
 bool HandleAlreadyReservedSpell(ReserveMagicka* AlreadyReservedspell, RE::SpellItem* spellItem,
                                 RE::PlayerCharacter* player, float spellCost) {
-    if (AlreadyReservedspell->spellCost == spellCost) {
+    if (AlreadyReservedspell->reserveCost == spellCost) {
         SKSE::log::info("Spell {} is already reserved. Skipping.", spellItem->GetName());
         // Should return early
         return true;
@@ -81,8 +75,6 @@ RE::EffectSetting& GetReserveSpellEffectSetting() {
     return *customMagicEffect;
 }
 
-void ApplyReserveSpellToPlayer(RE::SpellItem* spellItem) {}
-
 RE::SpellItem* CreateReserveSpellCarrier(RE::SpellItem* spellItem) {
     // Create a dynamic spell instance
     RE::ConcreteFormFactory<RE::SpellItem, RE::FormType::Spell>* formFactory =
@@ -114,7 +106,7 @@ RE::SpellItem* CreateReserveSpellCarrier(RE::SpellItem* spellItem) {
     return dynamicCarrierSpell;
 }
 
-RE::Effect* CreateReserveSpellEffect(RE::SpellItem* spellItem) {
+RE::Effect* CreateReserveSpellEffect() {
     // Create a new RE::Effect instance.
     // IMPORTANT: Memory management for this RE::Effect object is crucial.
     // If the spell takes ownership, great. If not, you might need to manage it.
@@ -133,10 +125,9 @@ RE::Effect* CreateReserveSpellEffect(RE::SpellItem* spellItem) {
 
     return newEffectItem;
 }
-void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Actor* player, RE::Effect* effect,
-                              RE::SpellItem* spellItem) {
+void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Effect* effect, RE::Actor* player,
+                              RE::SpellItem* spellItem, float reserveCost) {
     try {
-        float spellCost = CalculateMagickaForReserveSpell(spellItem);
         RE::EffectSetting& customMagicEffect = GetReserveSpellEffectSetting();
 
         // Get the player's MagicCaster component for the desired hand (e.g., kRightHand)
@@ -161,7 +152,7 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Actor* pla
 
         // Set the effect's parameters for this spell
         // newEffectItem->effectItem.magnitude = spellCost * -1.0f;
-        effect->effectItem.magnitude = spellCost;
+        effect->effectItem.magnitude = reserveCost;
         effect->effectItem.duration = static_cast<uint32_t>(Config::GetSingleton().GetPermanentSpellDuration());
         effect->effectItem.area = 0;              // 0 area for a self-target effect
         effect->baseEffect = &customMagicEffect;  // ** This is where you link your MGEF **
@@ -177,7 +168,7 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Actor* pla
         // Config::GetSingleton().GetReservedSpells().insert({spellToReserve, dynamicCarrierSpell});
         // auto& reservedSpells = Config::GetSingleton().GetReservedSpells();
         std::unordered_map<RE::FormID, ReserveMagicka>& reservedSpells = Config::GetSingleton().GetReservedSpells();
-        reservedSpells.insert({spellItem->GetFormID(), {spellItem, dynamicCarrierSpell, spellCost}});
+        reservedSpells.insert({spellItem->GetFormID(), {spellItem, dynamicCarrierSpell, reserveCost}});
 
         logger::info("reserved Spell Inserted");
         logger::info("Reserved Spells:");
@@ -187,7 +178,7 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Actor* pla
             logger::info("    Reserve Spell Item: {}",
                          pair.second.reserveSpellitem ? pair.second.reserveSpellitem->GetName() : "nullptr");
             logger::info("    Reserve Spell FormID: {:#010x}", pair.second.reserveSpellitem->GetFormID());
-            logger::info("    Spell Cost: {}", pair.second.spellCost);
+            logger::info("    Reserve Cost: {}", pair.second.reserveCost);
         }
 
     } catch (std::exception& e) {
@@ -197,4 +188,25 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Actor* pla
     }
 
     SKSE::log::info("Attempted to apply temporary debuff spell to player.");
+}
+
+void ApplyReserveSpellToPlayer(RE::SpellItem* spellItem) {
+    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+    if (!player) {
+        SKSE::log::error("Player not found for temporary debuff application.");
+        return;
+    }
+
+    float reserveCost = CalculateMagickaForReserveSpell(spellItem);
+    ReserveMagicka* alreadyReservedSpell = AlreadyReservedSpell(spellItem, player, reserveCost);
+
+    // If it already exists and has the same cost, then skip
+    if (alreadyReservedSpell && HandleAlreadyReservedSpell(alreadyReservedSpell, spellItem, player, reserveCost)) {
+        return;
+    }
+
+    RE::SpellItem* spellReserveCarrier = CreateReserveSpellCarrier(spellItem);
+    RE::Effect* spellReserveEffect = CreateReserveSpellEffect();
+
+    LinkReserveSpellToEffect(spellReserveCarrier, spellReserveEffect, player, spellItem, reserveCost);
 }

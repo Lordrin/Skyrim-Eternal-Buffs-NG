@@ -8,7 +8,7 @@
 struct ReserveMagicka {
     RE::SpellItem* spellItem = nullptr;
     RE::SpellItem* reserveSpellitem = nullptr;
-    float spellCost = 0.0f;
+    float reserveCost = 0.0f;
 };
 
 

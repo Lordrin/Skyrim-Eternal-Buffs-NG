@@ -120,8 +120,8 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
 
     if (AlreadyReservedspell != reservedSpells.end()) {
         logger::info("Spell {} is already reserved. With cost {}", spellToReserve->GetName(), spellCost);
-        logger::info("Already reserved spell cost {}", AlreadyReservedspell->second.spellCost);
-        if (AlreadyReservedspell->second.spellCost == spellCost) {
+        logger::info("Already reserved spell cost {}", AlreadyReservedspell->second.reserveCost);
+        if (AlreadyReservedspell->second.reserveCost == spellCost) {
             SKSE::log::info("Spell {} is already reserved. Skipping.", spellToReserve->GetName());
             return;
         } else {
@@ -209,7 +209,7 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
             logger::info("    Reserve Spell Item: {}",
                          pair.second.reserveSpellitem ? pair.second.reserveSpellitem->GetName() : "nullptr");
             logger::info("    Reserve Spell FormID: {:#010x}", pair.second.reserveSpellitem->GetFormID());
-            logger::info("    Spell Cost: {}", pair.second.spellCost);
+            logger::info("    Spell Cost: {}", pair.second.reserveCost);
         }
 
     } catch (std::exception& e) {
