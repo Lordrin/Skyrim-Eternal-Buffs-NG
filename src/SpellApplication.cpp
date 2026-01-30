@@ -2,6 +2,8 @@
 
 #include "SpellUtilities.h"
 
+#include "SpellLogging.h"
+
 void CleanUpDispelledReserveSpells() {
     // TODO: Move this to a function
     auto& removedReserveSpells = Config::GetSingleton().GetRemovedReservedSpells();
@@ -161,6 +163,8 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
     }
 
     logger::info("Effect123: {}", customMagicEffect->fullName);
+    LogAllSpellsOnActor(*player);
+    CheckEffectStatus(*player);
     // std::string newFullName = std::string(customMagicEffect->fullName.c_str()) + " - " +
     // spellToReserve->GetName(); customMagicEffect->fullName = RE::BSFixedString(newFullName.c_str());
 

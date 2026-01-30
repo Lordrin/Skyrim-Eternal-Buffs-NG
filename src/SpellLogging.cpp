@@ -1,10 +1,12 @@
 #include "SpellLogging.h"
 
+#include <vector>
+
 void LogKeywords(RE::BGSKeywordForm* keywordForm, const std::string& indent) {
     if (spdlog::get_level() < spdlog::level::debug) {
         return;
     }
-    
+
     if (!keywordForm) return;
 
     uint32_t numKeywords = keywordForm->GetNumKeywords();
@@ -44,6 +46,94 @@ void LogAllActiveEffectsOfSpell(RE::SpellItem* spellItem) {
             effectCount++;
             logger::debug("        {}. Effect ID: {:#010x} ('{}')", effectCount, effect->baseEffect->GetFormID(),
                           effect->baseEffect->GetName());
+        }
+    }
+}
+
+void LogAllSpellsOnActor(RE::Actor& actor) {
+    if (spdlog::get_level() < spdlog::level::debug) {
+        return;
+    }
+
+    if (actor.IsDead()) {
+        logger::warn("Actor is dead. Cannot log active effects.");
+        return;
+    }
+
+    RE::MagicTarget* magicTarget = actor.GetMagicTarget();
+    if (!magicTarget) {
+        logger::warn("ApplyAllSavedSpellsToActor: Actor has no MagicTarget.");
+        return;
+    }
+
+    RE::BSSimpleList<RE::ActiveEffect*>* activeEffects = magicTarget->GetActiveEffectList();
+    if (!activeEffects || activeEffects->empty()) {
+        logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
+        return;
+    }
+
+    std::map<RE::FormID, RE::SpellItem*> activeSpells;
+    logger::debug("Active Spells on Actor {}:", actor.GetName());
+    // Iterate over the active effects and check for matches in the set
+    for (RE::ActiveEffect* activeEffect : *activeEffects) {
+        // Check if the effect is "Inactive" (Suppressed)
+        bool isInactive = activeEffect->flags.all(RE::ActiveEffect::Flag::kInactive);
+        
+        // Check if it's been dispelled (waiting to be deleted)
+        bool isDispelled = activeEffect->flags.all(RE::ActiveEffect::Flag::kDispelled);
+
+        if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject() || isInactive || isDispelled) {
+            continue;
+        }
+
+        RE::FormID spellFormID = activeEffect->spell->GetFormID();
+        if (activeSpells.find(spellFormID) == activeSpells.end()) {
+            activeSpells.insert({spellFormID, activeEffect->spell->As<RE::SpellItem>()});
+        }
+    }
+    logger::info("Active Spells on Actor {}:", actor.GetName());
+    // iterate over map and log spell
+    int spellCount = 0;
+    for (auto& [spellFormID, spellItem] : activeSpells) {
+        ++spellCount;
+        logger::debug("  {}. Spell ID: {:#010x} ('{}')", spellCount, spellFormID, spellItem->GetName());
+    }
+}
+
+
+
+void CheckEffectStatus(RE::Actor& actor) {
+    RE::MagicTarget* magicTarget = actor.GetMagicTarget();
+    if (!magicTarget) {
+        logger::warn("ApplyAllSavedSpellsToActor: Actor has no MagicTarget.");
+        return;
+    }
+
+    RE::BSSimpleList<RE::ActiveEffect*>* activeEffects = magicTarget->GetActiveEffectList();
+    if (!activeEffects || activeEffects->empty()) {
+        logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
+        return;
+    }
+
+    for (auto* effect : *activeEffects) {
+        if (!effect) continue;
+
+        // Get the base spell/magic item associated with this effect
+        auto* magicItem = effect->spell;
+        if (!magicItem) continue;
+
+        // Check if the effect is "Inactive" (Suppressed)
+        bool isInactive = effect->flags.all(RE::ActiveEffect::Flag::kInactive);
+        
+        // Check if it's been dispelled (waiting to be deleted)
+        bool isDispelled = effect->flags.all(RE::ActiveEffect::Flag::kDispelled);
+
+        if (isInactive) {
+            SKSE::log::info("Spell: '{}' is CURRENTLY SUPPRESSED (Lower rank or overridden)", magicItem->GetName());
+        } else if (isDispelled) {
+            SKSE::log::info("Spell: '{}' is DISPELLED", magicItem->GetName());
+        } else {
+            SKSE::log::info("Spell: '{}' is ACTIVE and EFFECTIVE", magicItem->GetName());
         }
     }
 }
@@ -127,7 +217,7 @@ void LogSpellItemDetails(RE::SpellItem* spellItem, const std::string& indent, co
     logger::debug("{}  Spell Delivery: {}", indent, static_cast<int>(spellItem->data.delivery));
     logger::debug("{}  Spell Casting Type: {}", indent, static_cast<int>(spellItem->data.castingType));
     logger::debug("{}  Spell is non-recastable: {}", indent, SpellUtilities::IsNonRecastable(spellItem));
-#ifdef _DEBUG  
+#ifdef _DEBUG
     logger::debug("{}  Spell Type: {}", indent, SpellUtilities::ToString(spellItem->data.spellType));
     logger::debug("{}  Spell Delivery: {}", indent, SpellUtilities::ToString(spellItem->data.delivery));
     logger::debug("{}  Spell Casting Type: {}", indent, SpellUtilities::ToString(spellItem->data.castingType));

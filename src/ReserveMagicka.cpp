@@ -1,11 +1,6 @@
 #include "ReserveMagicka.h"
 
 float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem, RE::PlayerCharacter* player) {
-    if (!spellItem) {
-        SKSE::log::error("Spell not found for temporary debuff application.");
-        return;
-    }
-
     float spellCost = spellItem->CalculateMagickaCost(player);
     // TODO expand this with config settings
 
@@ -47,7 +42,8 @@ RE::TESForm& GetReserveSpellForm() {
     RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
     if (reserveEffectFormID == 0) {
         logger::warn("ReserveEffectFormID is not set. Returning early.");
-        return;
+        throw std::runtime_error("ReserveEffectFormID is not set.");
+        // return;
     }
 
     auto datahandler = RE::TESDataHandler::GetSingleton();
@@ -58,8 +54,9 @@ RE::TESForm& GetReserveSpellForm() {
     RE::TESForm* form = datahandler->LookupForm(reserveEffectFormID, "EternalBuffsNG.esp");
     if (!form) {
         SKSE::log::error("Custom spell was not found with FormID {:#010x}.", reserveEffectFormID);
+        throw std::runtime_error("Custom spell was not found.");
         // TODO throw error here and catch later
-        return;
+        // return;
     }
 
     return *form;
@@ -70,7 +67,8 @@ RE::EffectSetting& GetReserveSpellEffectSetting() {
     RE::EffectSetting* customMagicEffect = form.As<RE::EffectSetting>();
     if (!customMagicEffect) {
         SKSE::log::error("Spell is null.");
-        return;  // TODO throw error here
+        throw std::runtime_error("Spell is null.");
+        // return;  // TODO throw error here
     }
     return *customMagicEffect;
 }
@@ -85,12 +83,14 @@ RE::SpellItem* CreateReserveSpellCarrier(RE::SpellItem* spellItem) {
         dynamicCarrierSpell = formFactory->Create();  // This gets an FFxxxxxx FormID
     } else {
         SKSE::log::error("Failed to get spell factory!");
-        return;  // or handle error
+        throw std::runtime_error("Failed to get spell factory!");
+        // return;  // or handle error
     }
 
     if (!dynamicCarrierSpell) {
         SKSE::log::error("Failed to create dynamic carrier spell instance!");
-        return;  // or handle error
+        throw std::runtime_error("Failed to create dynamic carrier spell instance!");
+        // return;  // or handle error
     }
 
     // Configure this dynamic spell:
@@ -190,23 +190,32 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Effect* ef
     SKSE::log::info("Attempted to apply temporary debuff spell to player.");
 }
 
-void ApplyReserveSpellToPlayer(RE::SpellItem* spellItem) {
-    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-    if (!player) {
-        SKSE::log::error("Player not found for temporary debuff application.");
-        return;
+void ApplyReserveSpellToPlayer2(RE::SpellItem* spellItem) {
+    try {
+        if (!spellItem) {
+            SKSE::log::error("Spell not found for temporary debuff application.");
+            return;
+        }
+
+        RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+        if (!player) {
+            SKSE::log::error("Player not found for temporary debuff application.");
+            return;
+        }
+
+        float reserveCost = CalculateMagickaForReserveSpell(spellItem, player);
+        ReserveMagicka* alreadyReservedSpell = AlreadyReservedSpell(spellItem, player, reserveCost);
+
+        // If it already exists and has the same cost, then skip
+        if (alreadyReservedSpell && HandleAlreadyReservedSpell(alreadyReservedSpell, spellItem, player, reserveCost)) {
+            return;
+        }
+
+        RE::SpellItem* spellReserveCarrier = CreateReserveSpellCarrier(spellItem);
+        RE::Effect* spellReserveEffect = CreateReserveSpellEffect();
+
+        LinkReserveSpellToEffect(spellReserveCarrier, spellReserveEffect, player, spellItem, reserveCost);
+    } catch (std::exception& e) {
+        SKSE::log::error("Failed to apply reserve spell: {}", e.what());
     }
-
-    float reserveCost = CalculateMagickaForReserveSpell(spellItem);
-    ReserveMagicka* alreadyReservedSpell = AlreadyReservedSpell(spellItem, player, reserveCost);
-
-    // If it already exists and has the same cost, then skip
-    if (alreadyReservedSpell && HandleAlreadyReservedSpell(alreadyReservedSpell, spellItem, player, reserveCost)) {
-        return;
-    }
-
-    RE::SpellItem* spellReserveCarrier = CreateReserveSpellCarrier(spellItem);
-    RE::Effect* spellReserveEffect = CreateReserveSpellEffect();
-
-    LinkReserveSpellToEffect(spellReserveCarrier, spellReserveEffect, player, spellItem, reserveCost);
 }
