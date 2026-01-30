@@ -1,20 +1,8 @@
 #include "ReserveMagicka.h"
 
-bool IsValidSpellToReserve(RE::SpellItem* spellItem){
+float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem){
     if (!spellItem) {
         SKSE::log::error("Spell not found for temporary debuff application.");
-        return;
-    }
-
-    RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
-    if (reserveEffectFormID == 0) {
-        logger::warn("ReserveEffectFormID is not set. Returning early.");
-        return;
-    }
-}
-
-float CalculateMagickaForReserveSpell(RE::SpellItem* spellItem){
-    if(!IsValidSpellToReserve(spellItem)){
         return;
     }
 
@@ -36,6 +24,23 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellItem){
 }
 
 RE::Effect& CreateReserveSpellEffect(RE::SpellItem* spellItem){
+    auto datahandler = RE::TESDataHandler::GetSingleton();
+    if (!datahandler) {
+        SKSE::log::error("DataHandler is null.");
+    }
+
+    RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
+    if (reserveEffectFormID == 0) {
+        logger::warn("ReserveEffectFormID is not set. Returning early.");
+        return;
+    }
+
+    auto form = datahandler->LookupForm(reserveEffectFormID, "EternalBuffsNG.esp");
+    if (!form) {
+        SKSE::log::error("Custom spell was not found with FormID {:#010x}.", reserveEffectFormID);
+        return;
+    }
+
     // Create a dynamic spell instance
     RE::ConcreteFormFactory<RE::SpellItem, RE::FormType::Spell>* formFactory =
         RE::IFormFactory::GetConcreteFormFactoryByType<RE::SpellItem>();
