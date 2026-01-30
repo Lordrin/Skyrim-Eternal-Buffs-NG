@@ -153,20 +153,20 @@ void SpellRule::ApplySpellRulesToActiveEffect(RE::ActiveEffect* activeEffect) co
         activeEffect->magnitude = magnitudeFilter;  // Set the magnitude to the filter value
     }
 
-    // TODO: refactor this and change to debug
-    if (!shouldReserveMagicka.has_value()) {
-        if (Config::GetSingleton().GetGeneralRule().reserveMagickaEnabled) {
-            logger::info("ApplyRulesToSpell: Should reserve magicka cost global");
-            if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
-                ApplyReserveSpellToPlayer(spellItem);
-            }
-        }
-    } else if (shouldReserveMagicka.value()) {
-        logger::info("ApplyRulesToSpell: Should reserve magicka: cost");
-        if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
-            ApplyReserveSpellToPlayer(spellItem);
-        }
-    }
+    // // TODO: refactor this and change to debug
+    // if (!shouldReserveMagicka.has_value()) {
+    //     if (Config::GetSingleton().GetGeneralRule().reserveMagickaEnabled) {
+    //         logger::info("ApplyRulesToSpell: Should reserve magicka cost global");
+    //         if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
+    //             ApplyReserveSpellToPlayer(spellItem);
+    //         }
+    //     }
+    // } else if (shouldReserveMagicka.value()) {
+    //     logger::info("ApplyRulesToSpell: Should reserve magicka: cost");
+    //     if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
+    //         ApplyReserveSpellToPlayer(spellItem);
+    //     }
+    // }
 }
 
 std::string SpellRule::ToString() const {

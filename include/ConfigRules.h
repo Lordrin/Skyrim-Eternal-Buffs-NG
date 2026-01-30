@@ -55,6 +55,7 @@ struct SpellDisableCheck {
 };
 
 struct GeneralRule {
+    // defaults
     bool enabled = true;
     bool shoutsEnabled = false;
     bool spellsEnabled = true;

@@ -150,7 +150,8 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
     dynamicCarrierSpell->data.spellType = RE::MagicSystem::SpellType::kSpell;  // Or kLesserPower, etc.
     dynamicCarrierSpell->data.castingType = RE::MagicSystem::CastingType::kFireAndForget;
     dynamicCarrierSpell->data.delivery = RE::MagicSystem::Delivery::kSelf;
-    std::string reserveSpellName = "Reserve Magicka - ";
+    std::string reserveSpellName = "";
+    // std::string reserveSpellName = "Reserve Magicka - ";
     reserveSpellName += spellToReserve->GetName();
     dynamicCarrierSpell->fullName =
         RE::BSFixedString(reserveSpellName.c_str());  // Set a unique (even if internal) name for debugging if you want
@@ -384,7 +385,7 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
     logger::debug("-------------------Active Effects on Player on load complete.-------------------");
 
     std::unordered_set<RE::FormID> flattenedSpellData = SpellDataPersistence::FlattenSpellEffectsMapToSet(savedSpells);
-    SpellEffectsMap AllSavedSpells = SpellDataPersistence::GetAllSavedSpells();
+    // SpellEffectsMap AllSavedSpells = SpellDataPersistence::GetAllSavedSpells();
     std::unordered_set<RE::FormID> appliedSpellsIDs;
     std::unordered_set<RE::FormID> appliedRulesToSpellsIDs;
 
@@ -432,17 +433,17 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
         }
 
         // If the effect is linked to a saved spell AND doesnt have specific rules - Reset duration
-        if (AllSavedSpells.find(linkedSpellFormId) != AllSavedSpells.end()) {
+        if (savedSpells.find(linkedSpellFormId) != savedSpells.end()) {
             logger::debug("Found active effect with form ID: {:#010x}. Resetting duration.", effectFormID);
             activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();  // Set to permanent duration
             activeEffect->elapsedSeconds = 0.0f;                                          // Reset elapsed time
             // activeEffect->GetBaseObject()->magicItemDescription = "This is a test";
             appliedSpellsIDs.insert(linkedSpellFormId);  // Add to the list of applied spells
 
-            // TODO should I use the saved cost here? Is it snapshotted or recalculated on load?
-            if (Config::GetSingleton().GetGeneralRule().reserveMagickaEnabled) {
-                ApplyReserveSpellToPlayer(spellItem);
-            }
+            // // TODO should I use the saved cost here? Is it snapshotted or recalculated on load?
+            // if (Config::GetSingleton().GetGeneralRule().reserveMagickaEnabled) {
+            //     ApplyReserveSpellToPlayer(spellItem);
+            // }
 
         } else {
             logger::warn("  - Active effect not linked to a saved spell: {:#010x} - {}", linkedSpellFormId,
@@ -451,13 +452,13 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
     }
 
     // If not all saved spells were applied, then clean the saved spells of the ones not found.
-    if (appliedSpellsIDs.size() != AllSavedSpells.size()) {
+    if (appliedSpellsIDs.size() != savedSpells.size()) {
         logger::debug("Not all saved spells were applied to the player. {} out of {} spells applied.",
-                      appliedSpellsIDs.size(), AllSavedSpells.size());
+                      appliedSpellsIDs.size(), savedSpells.size());
         std::vector<RE::FormID> notAppliedSpellsIDs;  // Create a copy of the vector
 
         // Iterate over the keys in the map
-        for (const auto& [key, value] : AllSavedSpells) {
+        for (const auto& [key, value] : savedSpells) {
             // Check if the key is not in the set
             if (appliedSpellsIDs.find(key) == appliedSpellsIDs.end()) {
                 notAppliedSpellsIDs.push_back(key);  // Add the missing key to the result

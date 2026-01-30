@@ -26,7 +26,7 @@ void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem);
 void ApplyAllSavedSpellsToActor(RE::Actor& actor);
 void ApplyAllSavedPermanentSpellsToPlayer();
 
-void ApplyReserveSpellToPlayer(RE::SpellItem* spellToApply);
+// void ApplyReserveSpellToPlayer(RE::SpellItem* spellToApply);
 
 void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo);
 

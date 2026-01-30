@@ -249,6 +249,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
                 logger::info("Loaded spell rule: {}", spellRule.first);
                 logger::info("{}", spellRule.second.ToString());
             }
+            //TODO populate form
             // skyrimHwnd = ::FindWindowA("Skyrim Special Edition", nullptr);
             // if (!skyrimHwnd) skyrimHwnd = ::FindWindowA("Skyrim", nullptr);
             // if (!skyrimHwnd) skyrimHwnd = ::FindWindowA("SkyrimSE", nullptr);  // rare, but some mods use this
