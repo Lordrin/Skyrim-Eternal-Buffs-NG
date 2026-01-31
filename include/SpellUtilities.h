@@ -2,6 +2,11 @@
 
 namespace SpellUtilities {
 
+    struct SeparatedEffects {
+        std::vector<RE::ActiveEffect*> active;
+        std::vector<RE::ActiveEffect*> inactive;
+    };
+
     bool IsSummonSpell(RE::SpellItem* spellItem);
     bool IsLesserPower(RE::SpellItem* spellItem);
     bool IsGreaterPower(RE::SpellItem* spellItem);
@@ -22,6 +27,7 @@ namespace SpellUtilities {
     RE::SpellItem* GetSpellItemFromMagicEffectFormID(RE::FormID formID);
 
     RE::BSSimpleList<RE::ActiveEffect*>* GetActiveEffectsOnPlayer();
+    SeparatedEffects GetSeparatedActiveEffects(RE::BSSimpleList<RE::ActiveEffect*>* activeEffects);
 
 #ifdef _DEBUG
     static const char* ToString(RE::MagicSystem::SpellType type) {

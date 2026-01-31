@@ -331,4 +331,34 @@ namespace SpellUtilities {
         // return activeSpells.find(spellItem->GetFormID()) != activeSpells.end();
     }
 
+    SeparatedEffects GetSeparatedActiveEffects(
+        RE::BSSimpleList<RE::ActiveEffect*>* activeEffects) {
+        if (!activeEffects || activeEffects->empty()) {
+            logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
+            return {};
+        }
+
+        SeparatedEffects separatedActiveEffects;
+
+        for (RE::ActiveEffect* activeEffect : *activeEffects) {
+            // Check if the effect is "Inactive" (Suppressed)
+            bool isInactive = activeEffect->flags.all(RE::ActiveEffect::Flag::kInactive);
+            // Check if it's been dispelled (waiting to be deleted)
+            bool isDispelled = activeEffect->flags.all(RE::ActiveEffect::Flag::kDispelled);
+
+            if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject()) {
+                continue;
+            }
+
+            if (isInactive || isDispelled) {
+                separatedActiveEffects.inactive.push_back(activeEffect);
+                continue;
+            }
+
+            separatedActiveEffects.active.push_back(activeEffect);
+        }
+
+        return separatedActiveEffects;
+    }
+
 }
