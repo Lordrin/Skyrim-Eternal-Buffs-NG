@@ -195,19 +195,19 @@ void LinkReserveSpellToEffect(RE::SpellItem* dynamicCarrierSpell, RE::Effect* ef
 bool IsSpellSuppressed(RE::SpellItem* spellItem, RE::PlayerCharacter* player) {
     if (player->IsDead()) {
         logger::warn("Actor is dead. Cannot log active effects.");
-        return;
+        return false;
     }
 
     RE::MagicTarget* magicTarget = player->GetMagicTarget();
     if (!magicTarget) {
         logger::warn("ApplyAllSavedSpellsToActor: Actor has no MagicTarget.");
-        return;
+        return false;
     }
 
     RE::BSSimpleList<RE::ActiveEffect*>* activeEffects = magicTarget->GetActiveEffectList();
     if (!activeEffects || activeEffects->empty()) {
         logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
-        return;
+        return false;
     }
 
     std::set<RE::FormID> activeSpells;

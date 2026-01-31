@@ -242,23 +242,23 @@ namespace SpellUtilities {
     std::vector<RE::ActiveEffect*> GetActiveEffectsOnActorFromSpellItem(RE::Actor* actor, RE::SpellItem* spellItem) {
         if (!actor || !spellItem) {
             logger::error("DispelSpellItemFromActor: Invalid arguments.");
-            return;
+            return {};
         }
         if (actor->IsDead()) {
             logger::warn("Actor is dead. Cannot log active effects.");
-            return;
+            return {};
         }
 
         RE::MagicTarget* magicTarget = actor->GetMagicTarget();
         if (!magicTarget) {
             logger::warn("ApplyAllSavedSpellsToActor: Actor has no MagicTarget.");
-            return;
+            return {};
         }
 
         RE::BSSimpleList<RE::ActiveEffect*>* activeEffects = magicTarget->GetActiveEffectList();
         if (!activeEffects || activeEffects->empty()) {
             logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
-            return;
+            return {};
         }
 
         std::vector<RE::ActiveEffect*> activeEffectsOnActorFromSpell;
@@ -275,4 +275,60 @@ namespace SpellUtilities {
 
         return activeEffectsOnActorFromSpell;
     }
+
+    // RE::SpellItem* GetSpellItemFromMagicEffectFormID(RE::FormID formID) {
+    //     RE::TESForm* form = RE::TESForm::LookupByID(formID);
+    //     if (form) {
+    //         RE::EffectSetting* effect = form->As<RE::EffectSetting>();
+    //         RE::SpellItem* spellItem = effect->
+    //     }
+    //     return nullptr;
+    // }
+
+    RE::BSSimpleList<RE::ActiveEffect*>* GetActiveEffectsOnPlayer() {
+        RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
+        if (!player) {
+            logger::warn("SpellCastEvent: Player handle invalid");
+            return nullptr;
+        }
+        if (player->IsDead()) {
+            logger::warn("Actor is dead. Cannot log active effects.");
+            return nullptr;
+        }
+
+        RE::MagicTarget* magicTarget = player->GetMagicTarget();
+        if (!magicTarget) {
+            logger::warn("ApplyAllSavedSpellsToActor: Actor has no MagicTarget.");
+            return nullptr;
+        }
+
+        RE::BSSimpleList<RE::ActiveEffect*>* activeEffects = magicTarget->GetActiveEffectList();
+        if (!activeEffects || activeEffects->empty()) {
+            logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
+            return nullptr;
+        }
+
+        return activeEffects;
+
+        // std::set<RE::FormID> activeSpells;
+        // // std::map<RE::FormID, RE::SpellItem*> activeSpells;
+        // // Iterate over the active effects and check for matches in the set
+        // for (RE::ActiveEffect* activeEffect : *activeEffects) {
+        //     // Check if the effect is "Inactive" (Suppressed)
+        //     bool isInactive = activeEffect->flags.all(RE::ActiveEffect::Flag::kInactive);
+        //     // Check if it's been dispelled (waiting to be deleted)
+        //     bool isDispelled = activeEffect->flags.all(RE::ActiveEffect::Flag::kDispelled);
+
+        //     if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject() ||
+        //         isInactive || isDispelled) {
+        //         continue;
+        //     }
+
+        //     RE::FormID spellFormID = activeEffect->spell->GetFormID();
+        //     activeSpells.insert(spellFormID);
+        // }
+
+        // return activeSpells.find(spellItem->GetFormID()) != activeSpells.end();
+    }
+
 }

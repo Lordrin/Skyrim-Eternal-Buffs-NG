@@ -88,6 +88,7 @@ target_sources(
         "include/ConfigParser.h" "src/ConfigParser.cpp"
         "include/SpellUtilities.h" "src/SpellUtilities.cpp"
         "include/ReserveMagicka.h" "src/ReserveMagicka.cpp"
+        "include/MagicApplyEventHandler.h" "src/MagicApplyEventHandler.cpp"
 )
 
 target_precompile_headers(

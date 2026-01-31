@@ -7,6 +7,7 @@
 #include "SpellCastEventHandler.h"
 #include "SpellDataPersistence.h"
 #include "TPPlayerInputEventHandler.h"
+#include <MagicApplyEventHandler.h>
 
 // void ApplyTemporaryDebuffToPlayer(RE::SpellItem* spellToApply) {
 //     auto datahandler = RE::TESDataHandler::GetSingleton();
@@ -297,7 +298,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
     logger::info("Game version : {}", skse->RuntimeVersion().string());
 
     SKSE::Init(skse);
-    OnAddHook::Install();
+    // OnAddHook::Install();
     // Install();
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
@@ -326,6 +327,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             }
             SpellCastEventHandler::Register();
             TPPlayerInputEventHandler::Register();
+            MagicApplyEventHandler::Register();
             ApplyAllSavedPermanentSpellsToPlayer();
             SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
         }

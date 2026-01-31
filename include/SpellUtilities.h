@@ -19,6 +19,10 @@ namespace SpellUtilities {
     void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem);
     std::vector<RE::ActiveEffect*> GetActiveEffectsOnActorFromSpellItem(RE::Actor* actor, RE::SpellItem* spellItem);
 
+    RE::SpellItem* GetSpellItemFromMagicEffectFormID(RE::FormID formID);
+
+    RE::BSSimpleList<RE::ActiveEffect*>* GetActiveEffectsOnPlayer();
+
 #ifdef _DEBUG
     static const char* ToString(RE::MagicSystem::SpellType type) {
         switch (type) {

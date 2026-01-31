@@ -575,11 +575,11 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
                 logger::debug("No specific config rule applied, setting default duration {} for '{}'.",
                               activeEffect->duration, spellName);
                 // TODO
-                if (auto spellItemAE = activeEffect->spell->As<RE::SpellItem>()) {
-                    logger::info("calling ApplyTemporaryDebuffToPlayer for spell '{}' from handleSavedSpell",
-                                 spellName);
-                    ApplyReserveSpellToPlayer(spellItemAE);
-                }
+                // if (auto spellItemAE = activeEffect->spell->As<RE::SpellItem>()) {
+                //     logger::info("calling ApplyTemporaryDebuffToPlayer for spell '{}' from handleSavedSpell",
+                //                  spellName);
+                //     ApplyReserveSpellToPlayer(spellItemAE);
+                // }
                 // ApplyTemporaryDebuffToPlayer(cost);
             } else {
                 logger::debug("Specific config rule applied to '{}'.", spellName);
@@ -597,11 +597,11 @@ void HandleUnsavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& cas
     if (!appliedConfig && SpellUtilities::IsTemporaryEffect(activeEffect)) {
         activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
         // TODO
-        if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
-            logger::info("calling ApplyTemporaryDebuffToPlayer for spell '{}' from handleUnsavedSpell",
-                         spellItem->GetName());
-            ApplyReserveSpellToPlayer(spellItem);
-        }
+        // if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
+        //     logger::info("calling ApplyTemporaryDebuffToPlayer for spell '{}' from handleUnsavedSpell",
+        //                  spellItem->GetName());
+        //     ApplyReserveSpellToPlayer(spellItem);
+        // }
         // ApplyTemporaryDebuffToPlayer(cost);
     }
     SpellDataPersistence::CacheSpellForSaving(castInfo.spellItem);
