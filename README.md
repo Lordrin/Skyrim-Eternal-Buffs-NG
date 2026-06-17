@@ -2,6 +2,10 @@
 
 A C++ SKSE plugin for Skyrim that makes all self cast spells last 'eternally'.
 
+This plugin makes all buffs spells cast by the player last an 'infinite' amount of time and be toggled on and off.
+
+Simply cast the spell to apply the buff and re-cast the spell to remove the buff.
+
 ---
 
 # CommonLibSSE NG
