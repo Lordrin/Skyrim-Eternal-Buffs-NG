@@ -12,29 +12,19 @@
 #include "StringUtilities.h"
 #include "ConfigRules.h"
 
-// struct SpellData {
-//     std::vector<RE::FormID> spellEffects;
-//     uint32_t cost = 0;
-// };
-
 // Stores a map where:
 // Key = SpellItem FormID
 // Value = Vector of EffectSetting (MGEF) FormIDs associated with that spell
 using SpellEffectsMap = std::map<RE::FormID, std::vector<RE::FormID>>;
 
 namespace SpellDataPersistence {
-    // struct SpellData {
-    //     SpellEffectsMap spellEffectsMap;
-    //     uint32_t cost = 0;
-    // };
-    // Our runtime storage for the data
+    // Runtime storage for the data
     static SpellEffectsMap g_savedSpellData;
-    // Mutex to protect access if multiple threads could modify it (safer practice)
     static std::mutex g_dataMutex;
 
     // --- Constants for Serialization ---
-    // constexpr uint32_t kDataKey = 'EBUF';  // plugin's unique ID
-    constexpr uint32_t kDataKey = 'LRDN';  // plugin's unique ID
+    constexpr uint32_t kDataKey = 'EBUF';  // plugin's unique ID
+    // constexpr uint32_t kDataKey = 'LRDN';  // plugin's unique ID
     constexpr uint32_t kDataVersion = 1; 
 
     // Logs the attributes of SpellEffectsMap

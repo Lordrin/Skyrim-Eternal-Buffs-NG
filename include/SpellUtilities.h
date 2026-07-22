@@ -24,7 +24,7 @@ namespace SpellUtilities {
     void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem);
     std::vector<RE::ActiveEffect*> GetActiveEffectsOnActorFromSpellItem(RE::Actor* actor, RE::SpellItem* spellItem);
 
-    RE::SpellItem* GetSpellItemFromMagicEffectFormID(RE::FormID formID);
+    // RE::SpellItem* GetSpellItemFromMagicEffectFormID(RE::FormID formID);
 
     RE::BSSimpleList<RE::ActiveEffect*>* GetActiveEffectsOnPlayer();
     SeparatedEffects GetSeparatedActiveEffects(RE::BSSimpleList<RE::ActiveEffect*>* activeEffects);

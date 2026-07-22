@@ -15,8 +15,6 @@ enum class RuleIdentifierType { kInvalid = -1, kName = 0, kForm = 1, kPlugin = 2
 
 struct RuleIdentifierResult {
     RuleIdentifierType identifierType;
-    // RE::TESForm* formResult;
-    // std::string result;
     std::variant<std::string, RE::TESForm*> variantResult;
 };
 
@@ -95,4 +93,3 @@ bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule&
 
 bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule);
 bool IsSpellRuleDefined(RE::SpellItem* spellItem);
-

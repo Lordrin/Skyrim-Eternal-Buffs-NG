@@ -4,37 +4,6 @@
 
 #include "SpellLogging.h"
 
-void CleanUpDispelledReserveSpells() {
-    // TODO: Move this to a function
-    auto& removedReserveSpells = Config::GetSingleton().GetRemovedReservedSpells();
-    for (auto& removedReserveSpell : removedReserveSpells) {
-        logger::info("Removed reserve spell {:#010x} is {}", removedReserveSpell.first,
-                     removedReserveSpell.second.spellItem->GetName());
-        if (removedReserveSpell.second.reserveSpellitem == nullptr) {
-            logger::info("Removed reserve spell {:#010x} is null", removedReserveSpell.first);
-        } else {
-            logger::info("Removed reserve spell {:#010x} is {}",
-                         removedReserveSpell.second.reserveSpellitem->GetFormID(),
-                         removedReserveSpell.second.reserveSpellitem->GetName());
-            if (removedReserveSpell.second.reserveSpellitem->effects[0] == nullptr) {
-                logger::info("          Removed reserve spell effect {:#010x} form id is null",
-                             removedReserveSpell.second.reserveSpellitem->GetFormID());
-            } else {
-                logger::info("          Removed reserve spell {:#010x} form id is {}",
-                             removedReserveSpell.second.reserveSpellitem->effects[0]->baseEffect->GetFormID(),
-                             removedReserveSpell.second.reserveSpellitem->effects[0]->baseEffect->GetName());
-            }
-            // logger::info("Removed reserve spell {:#010x} form id is {}",
-            // removedReserveSpell.second.reserveSpellitem.effects[0],
-            // removedReserveSpell.second.reserveSpellitem.effects[0].baseEffect.GetName());
-        }
-        RE::SpellItem* dynamicCarrierSpell = removedReserveSpell.second.reserveSpellitem;
-        delete dynamicCarrierSpell;  // Should delete the effects linked to it as well in its deconstructor.
-        removedReserveSpell.second.reserveSpellitem = nullptr;  // Null out the pointer
-    }
-    removedReserveSpells.clear();
-}
-
 void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect) {
     RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
     if (reserveEffectFormID == 0) {
@@ -66,165 +35,6 @@ void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect) {
     // }
 }
 
-void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
-    if (!spellToReserve) {
-        SKSE::log::error("Spell not found for temporary debuff application.");
-        return;
-    }
-
-    RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
-    if (reserveEffectFormID == 0) {
-        logger::warn("ReserveEffectFormID is not set. Returning early.");
-        return;
-    }
-
-    auto datahandler = RE::TESDataHandler::GetSingleton();
-    if (!datahandler) {
-        SKSE::log::error("DataHandler is null.");
-    }
-
-    auto form = datahandler->LookupForm(reserveEffectFormID, "EternalBuffsNG.esp");
-    if (!form) {
-        SKSE::log::error("Custom spell was not found with FormID {:#010x}.", reserveEffectFormID);
-        return;
-    }
-
-    RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-    if (!player) {
-        SKSE::log::error("Player not found for temporary debuff application.");
-        return;
-    }
-
-    auto spellCost = spellToReserve->CalculateMagickaCost(player);
-
-    // Get the player's MagicCaster component for the desired hand (e.g., kRightHand)
-    // Or if the spell is 'Self' delivery, a 'self' caster might be more appropriate,
-    // but often using a hand caster works well for Fire and Forget spells.
-    RE::MagicCaster* magicCaster = player->GetMagicCaster(RE::MagicSystem::CastingSource::kRightHand);
-    if (!magicCaster) {
-        // Try other hand or a default caster if right hand fails
-        magicCaster = player->GetMagicCaster(RE::MagicSystem::CastingSource::kLeftHand);
-        if (!magicCaster) {
-            SKSE::log::warn("Could not get a valid MagicCaster for the player.");
-            return;
-        }
-    }
-
-    RE::MagicTarget* magicTarget = player->GetMagicTarget();
-    if (!magicTarget) {
-        SKSE::log::warn("Could not get a valid MagicTarget for the player.");
-        return;
-    }
-
-    std::unordered_map<RE::FormID, ReserveMagicka>& reservedSpells = Config::GetSingleton().GetReservedSpells();
-
-    auto AlreadyReservedspell = reservedSpells.find(spellToReserve->GetFormID());
-
-    if (AlreadyReservedspell != reservedSpells.end()) {
-        logger::info("Spell {} is already reserved. With cost {}", spellToReserve->GetName(), spellCost);
-        logger::info("Already reserved spell cost {}", AlreadyReservedspell->second.reserveCost);
-        if (AlreadyReservedspell->second.reserveCost == spellCost) {
-            SKSE::log::info("Spell {} is already reserved. Skipping.", spellToReserve->GetName());
-            return;
-        } else {
-            SpellUtilities::DispelSpellItemFromActor(player, AlreadyReservedspell->second.reserveSpellitem);
-        }
-    }
-
-    // Create a dynamic spell instance
-    RE::ConcreteFormFactory<RE::SpellItem, RE::FormType::Spell>* formFactory =
-        RE::IFormFactory::GetConcreteFormFactoryByType<RE::SpellItem>();
-
-    RE::SpellItem* dynamicCarrierSpell = nullptr;
-    if (formFactory) {
-        dynamicCarrierSpell = formFactory->Create();  // This gets an FFxxxxxx FormID
-    } else {
-        SKSE::log::error("Failed to get spell factory!");
-        return;  // or handle error
-    }
-
-    if (!dynamicCarrierSpell) {
-        SKSE::log::error("Failed to create dynamic carrier spell instance!");
-        return;  // or handle error
-    }
-
-    // Configure this dynamic spell:
-    dynamicCarrierSpell->data.spellType = RE::MagicSystem::SpellType::kSpell;  // Or kLesserPower, etc.
-    dynamicCarrierSpell->data.castingType = RE::MagicSystem::CastingType::kFireAndForget;
-    dynamicCarrierSpell->data.delivery = RE::MagicSystem::Delivery::kSelf;
-    std::string reserveSpellName = "";
-    // std::string reserveSpellName = "Reserve Magicka - ";
-    reserveSpellName += spellToReserve->GetName();
-    dynamicCarrierSpell->fullName =
-        RE::BSFixedString(reserveSpellName.c_str());  // Set a unique (even if internal) name for debugging if you want
-    RE::EffectSetting* customMagicEffect = form->As<RE::EffectSetting>();
-    if (!customMagicEffect) {
-        SKSE::log::error("Spell is null.");
-    }
-
-    logger::info("Effect123: {}", customMagicEffect->fullName);
-    LogAllSpellsOnActor(*player);
-    CheckEffectStatus(*player);
-    // std::string newFullName = std::string(customMagicEffect->fullName.c_str()) + " - " +
-    // spellToReserve->GetName(); customMagicEffect->fullName = RE::BSFixedString(newFullName.c_str());
-
-    // Create a new RE::Effect instance.
-    // IMPORTANT: Memory management for this RE::Effect object is crucial.
-    // If the spell takes ownership, great. If not, you might need to manage it.
-    // Often, when added to the spell's list and the spell is used, the game manages it.
-    RE::Effect* newEffectItem =
-        new RE::Effect();  // Allocate on the heap // The RE::SpellItem destructor iterates through its effects
-    // array and deletes each RE::Effect* it contains.
-    if (!newEffectItem) {
-        SKSE::log::error("Failed to allocate RE::Effect item!");
-        // Potentially delete dynamicSpell if it's not yet fully integrated
-        delete newEffectItem;
-        delete dynamicCarrierSpell;
-        return;
-    }
-    try {
-        // TODO delete newEffectItem on error
-
-        // Set the effect's parameters for this spell
-        // newEffectItem->effectItem.magnitude = spellCost * -1.0f;
-        newEffectItem->effectItem.magnitude = spellCost;
-        newEffectItem->effectItem.duration =
-            static_cast<uint32_t>(Config::GetSingleton().GetPermanentSpellDuration());  // Example: 60 seconds
-        newEffectItem->effectItem.area = 0;             // Example: 0 area for a self-target effect
-        newEffectItem->baseEffect = customMagicEffect;  // ** This is where you link your MGEF **
-
-        dynamicCarrierSpell->effects.push_back(newEffectItem);
-        // float cost = dynamicCarrierSpell->CalculateMagickaCost(player);
-
-        magicCaster->CastSpellImmediate(dynamicCarrierSpell, true, player, 1.0f, false,
-                                        newEffectItem->effectItem.magnitude, nullptr);
-        logger::info("Reserved spell: {} applied with: {} - FormID {:#010x}", spellToReserve->GetName(),
-                     dynamicCarrierSpell->GetName(), dynamicCarrierSpell->GetFormID());
-
-        // Config::GetSingleton().GetReservedSpells().insert({spellToReserve, dynamicCarrierSpell});
-        // auto& reservedSpells = Config::GetSingleton().GetReservedSpells();
-        reservedSpells.insert({spellToReserve->GetFormID(), {spellToReserve, dynamicCarrierSpell, spellCost}});
-
-        logger::info("reserved Spell Inserted");
-        logger::info("Reserved Spells:");
-        for (const auto& pair : reservedSpells) {
-            logger::info("  {:#010x}:", pair.first);
-            logger::info("    Spell Item: {}", pair.second.spellItem ? pair.second.spellItem->GetName() : "nullptr");
-            logger::info("    Reserve Spell Item: {}",
-                         pair.second.reserveSpellitem ? pair.second.reserveSpellitem->GetName() : "nullptr");
-            logger::info("    Reserve Spell FormID: {:#010x}", pair.second.reserveSpellitem->GetFormID());
-            logger::info("    Spell Cost: {}", pair.second.reserveCost);
-        }
-
-    } catch (std::exception& e) {
-        delete newEffectItem;
-        delete dynamicCarrierSpell;
-        SKSE::log::error("Failed to apply spell: {}", e.what());
-    }
-
-    SKSE::log::info("Attempted to apply temporary debuff spell to player.");
-}
-
 // void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
 //     logger::info("Dispel called for spell: {}", spellItem->GetName());
 //     if (!actor || !spellItem) {
@@ -247,51 +57,6 @@ void ApplyReserveSpellToPlayer(RE::SpellItem* spellToReserve) {
 //     RE::ActorHandle actorHandle = actor->GetHandle();
 //     magicTarget->DispelEffect(spell, actorHandle);
 // }
-
-void DispelReserveSpellFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
-    if (!actor || !spellItem) {
-        logger::error("DispellReserveSpellFromActor: Invalid arguments.");
-        return;
-    }
-
-    logger::info("Dispell called for spell: {}", spellItem->GetName());
-    auto& reservedSpells = Config::GetSingleton().GetReservedSpells();
-    // logger::info("Reserved Spells:");
-    // for (const auto& pair : reservedSpells) {
-    //     logger::info("  {:#010x}:", pair.first);
-    //     logger::info("    Spell Item: {}", pair.second.spellItem ? pair.second.spellItem->GetName() : "nullptr");
-    //     logger::info("    Spell FormID: {:#010x}", pair.second.spellItem->GetFormID());
-    //     logger::info("    Reserve Spell Item: {}",
-    //                  pair.second.reserveSpellitem ? pair.second.reserveSpellitem->GetName() : "nullptr");
-    //     logger::info("    Reserve Spell FormID: {:#010x}", pair.second.reserveSpellitem->GetFormID());
-    //     logger::info("    Spell Cost: {}", pair.second.spellCost);
-    // }
-
-    // TODO move this to a function
-    auto it = reservedSpells.find(spellItem->GetFormID());
-    if (it != reservedSpells.end()) {
-        logger::info("Dispell reserved magicka called for spell: {}", it->second.spellItem->GetName());
-        // DispelSpellItemFromActor(actor, it->second.reserveSpellitem);
-        auto activeEffects = actor->GetMagicTarget()->GetActiveEffectList();
-        for (auto& activeEffect : *activeEffects) {
-            // logger::info("active effect: {}", activeEffect->GetBaseObject()->GetName());
-            // logger::info("active effect form id: {}", activeEffect->GetBaseObject()->GetFormID());
-            // logger::info("  spell name: {}", activeEffect->spell->GetName());
-            // logger::info("  spell form id: {}", activeEffect->spell->GetFormID());
-            if (activeEffect->spell == it->second.reserveSpellitem) {
-                logger::info("Dispell reserved magicka called for spell active effect: {}",
-                             activeEffect->GetBaseObject()->GetName());
-                activeEffect->Dispel(false);
-            }
-        }
-        // Release the created spell -- this causes a crash with Scrambled bug fixes
-        // delete it->second.reserveSpellitem->effects[0];
-        // delete it->second.reserveSpellitem;
-        auto& removedReserveSpells = Config::GetSingleton().GetRemovedReservedSpells();
-        removedReserveSpells.push_back(std::make_pair(spellItem->GetFormID(), it->second));
-        reservedSpells.erase(it);
-    }
-}
 
 /**
  * @brief Applies configuration rules to an active effect.
@@ -519,8 +284,6 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
         bool keyHeld = Config::GetSingleton().GetToggleKeyHeld();
         if (keyHeld) {
             // If it's a summon and the key is held, we INTEND to dispel it, overriding 'alreadyOnPlayer'.
-            // The original loop checking effect->baseEffect seems overly complex if we assume
-            // activeEffect is indeed an instance of an effect from spellItem.
             logger::debug("Summon spell '{}' ({:#010x}) and toggle key Held. Marking for potential dispel.", spellName,
                           spellItem->GetFormID());
             shouldConsiderDispel = true;
@@ -557,10 +320,8 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
     switch (finalAction) {
         case SpellHandlingAction::kDispel:
             logger::debug("Executing Dispel for spell '{}' ({:#010x}).", spellName, spellItem->GetFormID());
-            activeEffect->Dispel(false);  // false = No Hit Effects/Sound
-            // TODO remove reserved mana spell
-            SpellDataPersistence::RemoveSpellFromSave(spellItem->GetFormID());
-            DispelReserveSpellFromActor(RE::PlayerCharacter::GetSingleton(), spellItem);
+            activeEffect->Dispel(false); // Dispel the effect
+            SpellDataPersistence::RemoveSpellFromSave(spellItem->GetFormID()); // Remove the spell from the SKSE co-save
             logger::debug("Spell '{}' ({:#010x}) dispelled and removed from save.", spellName, spellItem->GetFormID());
             break;
 
@@ -574,13 +335,6 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
                 activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
                 logger::debug("No specific config rule applied, setting default duration {} for '{}'.",
                               activeEffect->duration, spellName);
-                // TODO
-                // if (auto spellItemAE = activeEffect->spell->As<RE::SpellItem>()) {
-                //     logger::info("calling ApplyTemporaryDebuffToPlayer for spell '{}' from handleSavedSpell",
-                //                  spellName);
-                //     ApplyReserveSpellToPlayer(spellItemAE);
-                // }
-                // ApplyTemporaryDebuffToPlayer(cost);
             } else {
                 logger::debug("Specific config rule applied to '{}'.", spellName);
             }
@@ -596,13 +350,6 @@ void HandleUnsavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& cas
     bool appliedConfig = ApplyConfigRulesToActiveEffect(activeEffect, pluginName);
     if (!appliedConfig && SpellUtilities::IsTemporaryEffect(activeEffect)) {
         activeEffect->duration = Config::GetSingleton().GetPermanentSpellDuration();
-        // TODO
-        // if (auto spellItem = activeEffect->spell->As<RE::SpellItem>()) {
-        //     logger::info("calling ApplyTemporaryDebuffToPlayer for spell '{}' from handleUnsavedSpell",
-        //                  spellItem->GetName());
-        //     ApplyReserveSpellToPlayer(spellItem);
-        // }
-        // ApplyTemporaryDebuffToPlayer(cost);
     }
     SpellDataPersistence::CacheSpellForSaving(castInfo.spellItem);
 }
@@ -697,7 +444,6 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
             if (activeEffect->GetBaseObject()->data.flags.any(
                     RE::EffectSetting::EffectSettingData::Flag::kNoDuration)) {
                 logger::debug("Spell '{}' ({:#010x}) has no duration.", spellName, spellItem->GetFormID());
-                // continue;
             }
 
             if (isSpellSaved) {
