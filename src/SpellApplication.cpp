@@ -16,23 +16,6 @@ void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect) {
     }
 
     activeEffect->Dispel(false);
-
-    // auto datahandler = RE::TESDataHandler::GetSingleton();
-    // if (!datahandler) {
-    //     SKSE::log::error("DataHandler is null.");
-    // }
-
-    // auto form = datahandler->LookupForm(reserveEffectFormID, "EternalBuffsNG.esp");
-    // if (!form) {
-    //     SKSE::log::error("Custom spell was not found with FormID {:#010x}.", reserveEffectFormID);
-    //     return;
-    // }
-
-    // RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
-    // if (!player) {
-    //     SKSE::log::error("Player not found for temporary debuff application.");
-    //     return;
-    // }
 }
 
 // void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {

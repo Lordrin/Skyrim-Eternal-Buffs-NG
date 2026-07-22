@@ -3,7 +3,7 @@
 #include "SpellCastEventHandler.h"
 
 namespace SpellDataPersistence {
-    void CacheSpellForSaving(RE::SpellItem* spell, uint32_t spellCost) {
+    void CacheSpellForSaving(RE::SpellItem* spell, uint32_t _spellCost) {
         if (!spell) {
             return;
         }

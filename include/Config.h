@@ -19,7 +19,7 @@ private:
     std::unordered_map<std::string, SpellRule> spellRules;
     std::unordered_map<RE::FormID, ReserveMagicka> reservedSpells;
     // TODO remove
-    std::vector<std::pair<RE::FormID, ReserveMagicka>> removedReservedSpells;
+    // std::vector<std::pair<RE::FormID, ReserveMagicka>> removedReservedSpells;
     uint32_t keyBinding = 42;
     bool toggleKeyHeld = false;
     RE::FormID reserveEffectFormID = 0;
@@ -33,7 +33,7 @@ public:
     std::unordered_map<std::string, SpellRule>& GetSpellRules() { return spellRules; }
     std::unordered_map<RE::FormID, ReserveMagicka>& GetReservedSpells() { return reservedSpells; }
     // TODO remove
-    std::vector<std::pair<RE::FormID, ReserveMagicka>>& GetRemovedReservedSpells() { return removedReservedSpells; }
+    // std::vector<std::pair<RE::FormID, ReserveMagicka>>& GetRemovedReservedSpells() { return removedReservedSpells; }
     uint32_t& GetKeyBinding() { return keyBinding; }
     bool& GetToggleKeyHeld() { return toggleKeyHeld; }
     const float GetPermanentSpellDuration() { return permanentSpellDuration; }
