@@ -28,6 +28,7 @@ namespace SpellUtilities {
 
     RE::BSSimpleList<RE::ActiveEffect*>* GetActiveEffectsOnPlayer();
     SeparatedEffects GetSeparatedActiveEffects(RE::BSSimpleList<RE::ActiveEffect*>* activeEffects);
+    SeparatedEffects GetSeparatedActiveEffects(std::vector<RE::ActiveEffect*>* activeEffects);
 
 #ifdef _DEBUG
     static const char* ToString(RE::MagicSystem::SpellType type) {
@@ -156,7 +157,7 @@ namespace SpellUtilities {
         return result.c_str();
     }
 
-    static const char* ToString(SKSE::stl::enumeration<RE::SpellItem::SpellFlag, uint32_t> flags) {
+    static std::string ToString(SKSE::stl::enumeration<RE::SpellItem::SpellFlag, uint32_t> flags) {
         std::string result = "";
 
         std::pair<RE::SpellItem::SpellFlag, const char*> flagsArray[] = {
@@ -181,7 +182,45 @@ namespace SpellUtilities {
         if (result.back() == '|') result.pop_back();  // remove trailing '|'
 
         SKSE::log::debug("current result: {}", result);
-        return result.c_str();
+        return result;
+    }
+
+    static std::string ToString(SKSE::stl::enumeration<RE::EffectSetting::EffectSettingData::Flag, uint32_t> flags) {
+        std::string result = "";
+
+        std::pair<RE::EffectSetting::EffectSettingData::Flag, const char*> flagsArray[] = {
+            {RE::EffectSetting::EffectSettingData::Flag::kHostile, "kHostile"},
+            {RE::EffectSetting::EffectSettingData::Flag::kRecover, "kRecover"},
+            {RE::EffectSetting::EffectSettingData::Flag::kDetrimental, "kDetrimental"},
+            {RE::EffectSetting::EffectSettingData::Flag::kSnapToNavMesh, "kSnapToNavMesh"},
+            {RE::EffectSetting::EffectSettingData::Flag::kNoHitEvent, "kNoHitEvent"},
+            {RE::EffectSetting::EffectSettingData::Flag::kDispelWithKeywords, "kDispelWithKeywords"},
+            {RE::EffectSetting::EffectSettingData::Flag::kNoDuration, "kNoDuration"},
+            {RE::EffectSetting::EffectSettingData::Flag::kNoMagnitude, "kNoMagnitude"},
+            {RE::EffectSetting::EffectSettingData::Flag::kNoArea, "kNoArea"},
+            {RE::EffectSetting::EffectSettingData::Flag::kFXPersist, "kFXPersist"},
+            {RE::EffectSetting::EffectSettingData::Flag::kGoryVisuals, "kGoryVisuals"},
+            {RE::EffectSetting::EffectSettingData::Flag::kHideInUI, "kHideInUI"},
+            {RE::EffectSetting::EffectSettingData::Flag::kNoRecast, "kNoRecast"},
+            {RE::EffectSetting::EffectSettingData::Flag::kPowerAffectsMagnitude, "kPowerAffectsMagnitude"},
+            {RE::EffectSetting::EffectSettingData::Flag::kPowerAffectsDuration, "kPowerAffectsDuration"},
+            {RE::EffectSetting::EffectSettingData::Flag::kPainless, "kPainless"},
+            {RE::EffectSetting::EffectSettingData::Flag::kNoHitEffect, "kNoHitEffect"},
+            {RE::EffectSetting::EffectSettingData::Flag::kNoDeathDispel, "kNoDeathDispel"},
+        };
+
+        for (auto& flag : flagsArray) {
+            if (flags & flag.first) {
+                result += flag.second;
+                result += "|";
+            }
+        }
+
+        if (result.empty()) return "kNone";
+        if (result.back() == '|') result.pop_back();  // remove trailing '|'
+
+        SKSE::log::debug("current result: {}", result);
+        return result;
     }
 
 #endif
