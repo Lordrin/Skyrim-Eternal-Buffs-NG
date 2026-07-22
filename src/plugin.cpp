@@ -325,9 +325,9 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
                 logger::debug("PostLoadGame event received, but shouts and spells are disabled in the generalrule.");
                 return;
             }
-            // SpellCastEventHandler::Register();
+            SpellCastEventHandler::Register();
             TPPlayerInputEventHandler::Register();
-            MagicApplyEventHandler::Register();
+            // MagicApplyEventHandler::Register();
             ApplyAllSavedPermanentSpellsToPlayer();
             SpellDataPersistence::LogSpellSFromMap(SpellDataPersistence::GetAllSavedSpells());  // Log all saved spells
         }

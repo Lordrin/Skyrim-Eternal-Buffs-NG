@@ -217,6 +217,10 @@ void LogSpellItemDetails(RE::SpellItem* spellItem, const std::string& indent, co
     logger::debug("{}  Spell Delivery: {}", indent, static_cast<int>(spellItem->data.delivery));
     logger::debug("{}  Spell Casting Type: {}", indent, static_cast<int>(spellItem->data.castingType));
     logger::debug("{}  Spell is non-recastable: {}", indent, SpellUtilities::IsNonRecastable(spellItem));
+    for (auto effect : spellItem->effects) {
+        logger::debug("{}  Spell Effect flags: {}", indent, SpellUtilities::ToString(effect->baseEffect->data.flags));
+        }
+    
 #ifdef _DEBUG
     logger::debug("{}  Spell Type: {}", indent, SpellUtilities::ToString(spellItem->data.spellType));
     logger::debug("{}  Spell Delivery: {}", indent, SpellUtilities::ToString(spellItem->data.delivery));

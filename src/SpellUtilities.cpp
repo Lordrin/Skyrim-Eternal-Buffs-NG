@@ -276,15 +276,6 @@ namespace SpellUtilities {
         return activeEffectsOnActorFromSpell;
     }
 
-    // RE::SpellItem* GetSpellItemFromMagicEffectFormID(RE::FormID formID) {
-    //     RE::TESForm* form = RE::TESForm::LookupByID(formID);
-    //     if (form) {
-    //         RE::EffectSetting* effect = form->As<RE::EffectSetting>();
-    //         RE::SpellItem* spellItem = effect->
-    //     }
-    //     return nullptr;
-    // }
-
     RE::BSSimpleList<RE::ActiveEffect*>* GetActiveEffectsOnPlayer() {
         RE::PlayerCharacter* player = RE::PlayerCharacter::GetSingleton();
         if (!player) {
@@ -309,30 +300,38 @@ namespace SpellUtilities {
         }
 
         return activeEffects;
-
-        // std::set<RE::FormID> activeSpells;
-        // // std::map<RE::FormID, RE::SpellItem*> activeSpells;
-        // // Iterate over the active effects and check for matches in the set
-        // for (RE::ActiveEffect* activeEffect : *activeEffects) {
-        //     // Check if the effect is "Inactive" (Suppressed)
-        //     bool isInactive = activeEffect->flags.all(RE::ActiveEffect::Flag::kInactive);
-        //     // Check if it's been dispelled (waiting to be deleted)
-        //     bool isDispelled = activeEffect->flags.all(RE::ActiveEffect::Flag::kDispelled);
-
-        //     if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject() ||
-        //         isInactive || isDispelled) {
-        //         continue;
-        //     }
-
-        //     RE::FormID spellFormID = activeEffect->spell->GetFormID();
-        //     activeSpells.insert(spellFormID);
-        // }
-
-        // return activeSpells.find(spellItem->GetFormID()) != activeSpells.end();
     }
 
-    SeparatedEffects GetSeparatedActiveEffects(
-        RE::BSSimpleList<RE::ActiveEffect*>* activeEffects) {
+    SeparatedEffects GetSeparatedActiveEffects(RE::BSSimpleList<RE::ActiveEffect*>* activeEffects) {
+        if (!activeEffects || activeEffects->empty()) {
+            logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
+            return {};
+        }
+
+        SeparatedEffects separatedActiveEffects;
+
+        for (RE::ActiveEffect* activeEffect : *activeEffects) {
+            // Check if the effect is "Inactive" (Suppressed)
+            bool isInactive = activeEffect->flags.all(RE::ActiveEffect::Flag::kInactive);
+            // Check if it's been dispelled (waiting to be deleted)
+            bool isDispelled = activeEffect->flags.all(RE::ActiveEffect::Flag::kDispelled);
+
+            if (!activeEffect || !activeEffect->spell || !activeEffect->effect || !activeEffect->GetBaseObject()) {
+                continue;
+            }
+
+            if (isInactive || isDispelled) {
+                separatedActiveEffects.inactive.push_back(activeEffect);
+                continue;
+            }
+
+            separatedActiveEffects.active.push_back(activeEffect);
+        }
+
+        return separatedActiveEffects;
+    }
+
+    SeparatedEffects GetSeparatedActiveEffects(std::vector<RE::ActiveEffect*>* activeEffects) {
         if (!activeEffects || activeEffects->empty()) {
             logger::debug("ApplyAllSavedSpellsToActor: Actor has no active effects.");
             return {};
