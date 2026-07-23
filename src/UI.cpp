@@ -191,6 +191,170 @@ namespace SettingsUI {
         logger::info("[IvyShowPlayerInMenus] Registered SKSE Menu Framework settings.");
     }
 
+    void __stdcall RenderSpellRulesTable() {
+        const OrderedMap<std::string, SpellRule>& spellRules = Config::GetSingleton().GetSpellRules();
+
+        ImGuiMCP::SetWindowFontScale(0.93f);
+        ImGuiMCP::SeparatorText("SPELL RULES");
+
+        ImGuiMCP::Text("Total rules: %zu", spellRules.Size());
+        ImGuiMCP::Spacing();
+
+        static ImGuiMCP::ImGuiTableFlags flags = ImGuiMCP::ImGuiTableFlags_Borders | ImGuiMCP::ImGuiTableFlags_RowBg | ImGuiMCP::ImGuiTableFlags_Resizable |
+                                       ImGuiMCP::ImGuiTableFlags_ScrollY | ImGuiMCP::ImGuiTableFlags_ScrollX;
+
+        ImGuiMCP::ImVec2 outerSize(0.0f, ImGuiMCP::GetTextLineHeightWithSpacing() * 12.0f);
+
+        if (ImGuiMCP::BeginTable("SpellRulesTable", 9, flags, outerSize)) {
+            ImGuiMCP::TableSetupScrollFreeze(0, 1);
+            ImGuiMCP::TableSetupColumn("Source", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 100.0f);
+            ImGuiMCP::TableSetupColumn("Resolved Form", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 140.0f);
+            ImGuiMCP::TableSetupColumn("Name Filter", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 120.0f);
+            ImGuiMCP::TableSetupColumn("Plugin Filter", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 120.0f);
+            ImGuiMCP::TableSetupColumn("Keywords", ImGuiMCP::ImGuiTableColumnFlags_WidthStretch, 0.2f);
+            ImGuiMCP::TableSetupColumn("Reserve Magicka", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 110.0f);
+            ImGuiMCP::TableSetupColumn("Duration", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 130.0f);
+            ImGuiMCP::TableSetupColumn("Min Duration", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 90.0f);
+            ImGuiMCP::TableSetupColumn("Magnitude", ImGuiMCP::ImGuiTableColumnFlags_WidthFixed, 130.0f);
+            ImGuiMCP::TableHeadersRow();
+
+            size_t ruleIdx = 0;
+            for (std::pair<const std::string &, const SpellRule &> spellRule : spellRules) {
+                ++ruleIdx;
+
+            // for (size_t ruleIdx = 0; ruleIdx < spellRules.size(); ++ruleIdx) {
+                SpellRule rule = spellRule.second;
+                ImGuiMCP::TableNextRow();
+                ImGuiMCP::PushID(static_cast<int>(ruleIdx));
+
+                // --- Source file (read-only, not handled by parser per your comment) ---
+                ImGuiMCP::TableSetColumnIndex(0);
+                ImGuiMCP::TextUnformatted(rule.sourceFile.empty() ? "<none>" : rule.sourceFile.c_str());
+
+                // --- Resolved form (read-only display; writing here won't mutate rule.resolvedForm) ---
+                ImGuiMCP::TableSetColumnIndex(1);
+                if (rule.resolvedForm) {
+                    const char* name = rule.resolvedForm->GetName();
+                    ImGuiMCP::Text("%s (%08X)", (name && name[0]) ? name : "<unnamed>", rule.resolvedForm->GetFormID());
+                } else {
+                    ImGuiMCP::TextDisabled("(unresolved)");
+                }
+                if (rule.resolvedForm) {
+                    ImGuiMCP::SameLine();
+                    if (ImGuiMCP::SmallButton("Clear")) {
+                        rule.resolvedForm = nullptr;  // direct field access, not through the variant
+                    }
+                }
+
+                // --- Name filter (editable text) ---
+                ImGuiMCP::TableSetColumnIndex(2);
+                {
+                    char buf[128];
+                    strncpy_s(buf, rule.nameFilter.c_str(), sizeof(buf) - 1);
+                    if (ImGuiMCP::InputText("##NameFilter", buf, sizeof(buf))) {
+                        rule.nameFilter = buf;
+                    }
+                }
+
+                // --- Plugin filter (editable text) ---
+                ImGuiMCP::TableSetColumnIndex(3);
+                {
+                    char buf[128];
+                    strncpy_s(buf, rule.pluginFilter.c_str(), sizeof(buf) - 1);
+                    if (ImGuiMCP::InputText("##PluginFilter", buf, sizeof(buf))) {
+                        rule.pluginFilter = buf;
+                    }
+                }
+
+                // --- Keyword filter (comma-joined, editable as one string) ---
+                ImGuiMCP::TableSetColumnIndex(4);
+                {
+                    std::string joined;
+                    for (size_t i = 0; i < rule.keywordFilter.size(); ++i) {
+                        joined += rule.keywordFilter[i];
+                        if (i + 1 < rule.keywordFilter.size()) joined += ", ";
+                    }
+                    char buf[256];
+                    strncpy_s(buf, joined.c_str(), sizeof(buf) - 1);
+                    if (ImGuiMCP::InputText("##KeywordFilter", buf, sizeof(buf))) {
+                        rule.keywordFilter.clear();
+                        std::stringstream ss(buf);
+                        std::string token;
+                        while (std::getline(ss, token, ',')) {
+                            // trim leading space
+                            size_t start = token.find_first_not_of(' ');
+                            if (start != std::string::npos) {
+                                rule.keywordFilter.push_back(token.substr(start));
+                            }
+                        }
+                    }
+                }
+
+                // --- shouldReserveMagicka: tri-state, NOT part of RuleVariant/GetFields ---
+                ImGuiMCP::TableSetColumnIndex(5);
+                if (rule.shouldReserveMagicka.has_value()) {
+                    bool value = rule.shouldReserveMagicka.value();
+                    if (ImGuiMCP::Checkbox("##ReserveMagicka", &value)) {
+                        rule.shouldReserveMagicka = value;
+                    }
+                    ImGuiMCP::SameLine();
+                    if (ImGuiMCP::SmallButton("X")) {
+                        rule.shouldReserveMagicka = std::nullopt;
+                    }
+                } else {
+                    ImGuiMCP::TextDisabled("(unset)");
+                    ImGuiMCP::SameLine();
+                    if (ImGuiMCP::SmallButton("+")) {
+                        rule.shouldReserveMagicka = false;
+                    }
+                }
+
+                // --- durationFilter (-1 = disabled by convention) ---
+                ImGuiMCP::TableSetColumnIndex(6);
+                {
+                    bool disabled = rule.durationFilter < 0.0f;
+                    if (ImGuiMCP::Checkbox("##DurEnabled", &disabled) == false) {
+                        // no-op path; checkbox below just for enabling/disabling
+                    }
+                    ImGuiMCP::SameLine();
+                    float value = disabled ? 0.0f : rule.durationFilter;
+                    ImGuiMCP::BeginDisabled(disabled);
+                    if (ImGuiMCP::DragFloat("##DurationFilter", &value, 0.1f, 0.0f, 1000.0f, "%.2f")) {
+                        rule.durationFilter = value;
+                    }
+                    ImGuiMCP::EndDisabled();
+                }
+
+                // --- minDurationFilter ---
+                ImGuiMCP::TableSetColumnIndex(7);
+                {
+                    int value = static_cast<int>(rule.minDurationFilter);
+                    if (ImGuiMCP::DragInt("##MinDuration", &value, 1, 0, 100000)) {
+                        rule.minDurationFilter = static_cast<uint32_t>(std::max(0, value));
+                    }
+                }
+
+                // --- magnitudeFilter (-1 = disabled by convention) ---
+                ImGuiMCP::TableSetColumnIndex(8);
+                {
+                    bool disabled = rule.magnitudeFilter < 0.0f;
+                    float value = disabled ? 0.0f : rule.magnitudeFilter;
+                    ImGuiMCP::BeginDisabled(disabled);
+                    if (ImGuiMCP::DragFloat("##MagnitudeFilter", &value, 0.1f, 0.0f, 1000.0f, "%.2f")) {
+                        rule.magnitudeFilter = value;
+                    }
+                    ImGuiMCP::EndDisabled();
+                }
+
+                ImGuiMCP::PopID();
+            }
+
+            ImGuiMCP::EndTable();
+        }
+
+        ImGuiMCP::SetWindowFontScale(1.0f);
+    }
+
     void __stdcall RenderSavedSpellsTable() {
         const SpellEffectsMap& savedSpells = SpellDataPersistence::GetAllSavedSpells();
 
@@ -302,19 +466,21 @@ namespace SettingsUI {
     void __stdcall RenderGeneralRuleGeneric() {
         GeneralRule& generalRule = Config::GetSingleton().GetGeneralRule();
         static const std::unordered_map<std::string, const char*> descriptions = {
-            {"enabled", "Master toggle. When off, this rule is skipped entirely."},
-            {"shoutsEnabled", "Allows shouts to be affected by this rule."},
-            {"spellsEnabled", "Allows regular spells to be affected by this rule."},
-            {"summonsEnabled", "Allows summon spells to be affected by this rule."},
-            {"lesserPowersEnabled", "Allows lesser powers to be affected by this rule."},
-            {"greaterPowersEnabled", "Allows greater powers to be affected by this rule."},
-            {"scrollsEnabled", "Allows scrolls to be affected by this rule."},
-            {"recastableEnabled", "If enabled, only recastable spells are affected."},
-            {"reserveMagickaEnabled", "Reserves magicka for this spell type."},
+            {"enabled", "Master toggle. When off, this mod has no effect."},
+            {"shoutsEnabled", "Allows shouts to be affected. Recommended to be disabled."},
+            {"spellsEnabled", "Allows regular spells to be affected. Recommended to be enabled."},
+            {"summonsEnabled", "Allows summon spells to be affected. Recommended to be enabled."},
+            {"lesserPowersEnabled", "Allows lesser powers to be affected. Recommended to be disabled."},
+            {"greaterPowersEnabled", "Allows greater powers to be affected. Recommended to be disabled."},
+            {"scrollsEnabled", "Allows scrolls to be affected. Recommended to be disabled."},
+            {"recastableEnabled",
+             "If enabled, non-recastable spells are affected. Some spells can not be recasted while their effect is "
+             "still running. They must be dispelled manually."},
+            // {"reserveMagickaEnabled", "Not implemented. Reserves magicka for this spell type."},
         };
 
         ImGuiMCP::SetWindowFontScale(0.93f);
-        ImGuiMCP::SeparatorText("GENERAL RULE");
+        ImGuiMCP::SeparatorText("GENERAL");
 
         for (const auto& [name, boolPtr] : generalRule.GetFields()) {
             if (!boolPtr) continue;
@@ -330,9 +496,9 @@ namespace SettingsUI {
     }
 
     void __stdcall Render() {
-
         RenderGeneralRuleGeneric();
         RenderSavedSpellsTable();
+        RenderSpellRulesTable();
 
         ImGuiMCP::SetWindowFontScale(1.0f);
     }

@@ -398,7 +398,7 @@ void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo) {
 
     auto it = Config::GetSingleton().GetSpellRules().find(pluginName);
 
-    if (it != Config::GetSingleton().GetSpellRules().end()) {
+    if (it != Config::GetSingleton().GetSpellRules().GetMap().end()) {
         logger::debug("Spell '{}' ({:#010x}) has a rule for plugin '{}'", spellName, spellItem->GetFormID(),
                       pluginName);
         hasPluginRule = true;

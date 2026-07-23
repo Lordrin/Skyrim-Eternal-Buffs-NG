@@ -16,7 +16,7 @@ class Config {
 private:
     GeneralRule generalRule;
     const float permanentSpellDuration = 86313600.0f;  // 999 days
-    std::unordered_map<std::string, SpellRule> spellRules;
+    OrderedMap<std::string, SpellRule> spellRules;
     std::unordered_map<RE::FormID, ReserveMagicka> reservedSpells;
     // TODO remove
     // std::vector<std::pair<RE::FormID, ReserveMagicka>> removedReservedSpells;
@@ -30,7 +30,7 @@ public:
         static Config instance;
         return instance;
     }
-    std::unordered_map<std::string, SpellRule>& GetSpellRules() { return spellRules; }
+    OrderedMap<std::string, SpellRule>& GetSpellRules() { return spellRules; }
     std::unordered_map<RE::FormID, ReserveMagicka>& GetReservedSpells() { return reservedSpells; }
     // TODO remove
     // std::vector<std::pair<RE::FormID, ReserveMagicka>>& GetRemovedReservedSpells() { return removedReservedSpells; }

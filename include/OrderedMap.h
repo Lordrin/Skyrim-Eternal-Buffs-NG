@@ -1,8 +1,15 @@
 #pragma once
 
+#include <cstddef>
+#include <functional>
+#include <initializer_list>
 #include <iostream>
 #include <list>
+#include <optional>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 // Insertion: O(1) average time (amortized, due to unordered_map's constant time insert).
 // Lookup: O(1) average time (due to unordered_map).
@@ -37,6 +44,11 @@ public:
         map[key] = value;  // Insert or update the value in the unordered_map
     }
 
+    void Insert(const std::pair<KeyType, ValueType>& item) {
+        // Simply delegate to your existing two-argument Insert
+        Insert(item.first, item.second);
+    }
+
     ValueType& operator[](const KeyType& key) {
         // If the key does not exist, insert a default value
         if (map.find(key) == map.end()) {
@@ -54,6 +66,8 @@ public:
             throw std::runtime_error("Key not found");
         }
     }
+
+    std::size_t Size() const { return order.size(); }
 
     auto find(const KeyType& key) const { return map.find(key); }
 

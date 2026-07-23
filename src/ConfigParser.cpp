@@ -144,7 +144,7 @@ namespace Parser {
                          spellRule.resolvedForm->GetName(), configFileName);
         }
 
-        Config::GetSingleton().GetSpellRules().insert({StringUtilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
+        Config::GetSingleton().GetSpellRules().Insert({StringUtilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
 
         auto to_print = spellRule.ToString();
         logger::debug("{}", to_print);

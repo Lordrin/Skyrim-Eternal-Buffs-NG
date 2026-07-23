@@ -180,7 +180,7 @@ std::string SpellRule::ToString() const {
 SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
-    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
         RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
         if (spellItem && spellRuleIt->second.IsCorrectRuleToSpell(spellItem)) {
             return spellRuleIt->second;
@@ -201,7 +201,7 @@ SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
 bool FindSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule) {
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
-    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
         spellRule = spellRuleIt->second;
         RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
         if (spellItem && spellRule.IsCorrectRuleToSpell(spellItem)) {
@@ -221,7 +221,7 @@ bool FindSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spe
  */
 bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule& spellRule) {
     auto spellRuleIt = Config::GetSingleton().GetSpellRules().find(pluginName);
-    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
         spellRule = spellRuleIt->second;
         return true;
     }
@@ -231,7 +231,7 @@ bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule&
 bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(spellItem->GetFullName()));
-    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
         spellRule = spellRuleIt->second;
         if (spellRule.IsCorrectRuleToSpell(spellItem)) {
             return true;
@@ -243,7 +243,7 @@ bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
 bool IsSpellRuleDefined(RE::SpellItem* spellItem) {
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(spellItem->GetFullName()));
-    if (spellRuleIt != Config::GetSingleton().GetSpellRules().end()) {
+    if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
         if (spellRuleIt->second.IsCorrectRuleToSpell(spellItem)) {
             return true;
         }

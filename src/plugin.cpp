@@ -31,8 +31,6 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
     logger::info("Game version : {}", skse->RuntimeVersion().string());
 
     SKSE::Init(skse);
-    // OnAddHook::Install();
-    // Install();
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
             ConfigLoader configLoader = ConfigLoader();
@@ -44,7 +42,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             auto generalRule = Config::GetSingleton().GetGeneralRule();
             logger::info("Loaded config rules: {}", generalRule.ToString());
             auto spellRules = Config::GetSingleton().GetSpellRules();
-            for (auto& spellRule : spellRules) {
+            for (auto spellRule : spellRules) {
                 logger::info("Loaded spell rule: {}", spellRule.first);
                 logger::info("{}", spellRule.second.ToString());
             }
