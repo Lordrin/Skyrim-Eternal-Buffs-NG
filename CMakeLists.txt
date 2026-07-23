@@ -88,6 +88,7 @@ target_sources(
         "include/Config.h" "src/Config.cpp"
         "include/ConfigParser.h" "src/ConfigParser.cpp"
         "include/SpellUtilities.h" "src/SpellUtilities.cpp"
+        "include/UI.h" "src/UI.cpp"
 )
 
 target_precompile_headers(

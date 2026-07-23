@@ -40,12 +40,12 @@ public:
     ValueType& operator[](const KeyType& key) {
         // If the key does not exist, insert a default value
         if (map.find(key) == map.end()) {
-            order.push_back(key);  // Maintain insertion order
+            order.push_back(key);          // Maintain insertion order
             map[key] = StoredValueType{};  // Insert default value
         }
         return map[key];
     }
-    
+
     const ValueType& operator[](const KeyType& key) const {
         auto it = map.find(key);
         if (it != map.end()) {
@@ -55,9 +55,7 @@ public:
         }
     }
 
-    auto find(const KeyType& key) const {
-        return map.find(key);
-    }
+    auto find(const KeyType& key) const { return map.find(key); }
 
     // Concatenate another OrderedMap in O(n) time
     // This is a copy operation, so the other map will remain unchanged.
@@ -106,4 +104,49 @@ public:
     const std::unordered_map<KeyType, ValueType>& GetMap() const { return map; }
 
     const std::vector<KeyType>& GetOrder() const { return order; }
+
+    // --- Iterator support for range-based for ---
+    class iterator {
+    public:
+        iterator(typename std::vector<KeyType>::iterator it, OrderedMap* owner) : it_(it), owner_(owner) {}
+
+        std::pair<const KeyType&, ValueType&> operator*() { return {*it_, owner_->map[*it_]}; }
+
+        iterator& operator++() {
+            ++it_;
+            return *this;
+        }
+        bool operator!=(const iterator& other) const { return it_ != other.it_; }
+        bool operator==(const iterator& other) const { return it_ == other.it_; }
+
+    private:
+        typename std::vector<KeyType>::iterator it_;
+        OrderedMap* owner_;
+    };
+
+    class const_iterator {
+    public:
+        const_iterator(typename std::vector<KeyType>::const_iterator it, const OrderedMap* owner)
+            : it_(it), owner_(owner) {}
+
+        // throws if something's ever out of sync
+        std::pair<const KeyType&, const ValueType&> operator*() const { return {*it_, owner_->map.at(*it_)}; }
+
+        const_iterator& operator++() {
+            ++it_;
+            return *this;
+        }
+        bool operator!=(const const_iterator& other) const { return it_ != other.it_; }
+        bool operator==(const const_iterator& other) const { return it_ == other.it_; }
+
+    private:
+        typename std::vector<KeyType>::const_iterator it_;
+        const OrderedMap* owner_;
+    };
+
+    iterator begin() { return iterator(order.begin(), this); }
+    iterator end() { return iterator(order.end(), this); }
+
+    const_iterator begin() const { return const_iterator(order.begin(), this); }
+    const_iterator end() const { return const_iterator(order.end(), this); }
 };

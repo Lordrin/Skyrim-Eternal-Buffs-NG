@@ -7,8 +7,7 @@
 #include "SpellCastEventHandler.h"
 #include "SpellDataPersistence.h"
 #include "TPPlayerInputEventHandler.h"
-
-#include <SKSEMCP/utils.hpp>
+#include <UI.h>
 
 void SetupLog() {
     auto logsFolder = logger::log_directory();
@@ -63,6 +62,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
     });
 
     SpellDataPersistence::RegisterSerializationCallbacks();
+    SettingsUI::Register();
 
     logger::info("{} initialization complete.", "Infinity Buffs");
     return true;

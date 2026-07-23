@@ -4,19 +4,19 @@
 
 #include "SpellLogging.h"
 
-void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect) {
-    RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
-    if (reserveEffectFormID == 0) {
-        logger::warn("ReserveEffectFormID is not set. Returning early.");
-        return;
-    }
+// void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect) {
+//     RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
+//     if (reserveEffectFormID == 0) {
+//         logger::warn("ReserveEffectFormID is not set. Returning early.");
+//         return;
+//     }
 
-    if (activeEffect->GetBaseObject()->GetFormID() != reserveEffectFormID) {
-        return;
-    }
+//     if (activeEffect->GetBaseObject()->GetFormID() != reserveEffectFormID) {
+//         return;
+//     }
 
-    activeEffect->Dispel(false);
-}
+//     activeEffect->Dispel(false);
+// }
 
 // void DispelSpellItemFromActor(RE::Actor* actor, RE::SpellItem* spellItem) {
 //     logger::info("Dispel called for spell: {}", spellItem->GetName());
@@ -147,7 +147,7 @@ void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
             continue;
         }
 
-        CheckAndDispelReserveSpellFromPlayer(activeEffect);
+        // CheckAndDispelReserveSpellFromPlayer(activeEffect);
 
         RE::FormID effectFormID = activeEffect->GetBaseObject()->GetFormID();
         logger::trace("  - Active Effect: {:#010x} - {}", effectFormID, activeEffect->GetBaseObject()->GetName());
