@@ -8,7 +8,7 @@
 
 RE::BSEventNotifyControl SpellCastEventHandler::ProcessEvent(const RE::TESSpellCastEvent* event,
                                                              RE::BSTEventSource<RE::TESSpellCastEvent>* /*source*/) {
-    if (!event || !event->object || !event->spell) {
+    if (!event || !event->object || !event->spell || !Config::GetSingleton().GetGeneralRule().enabled) {
         return RE::BSEventNotifyControl::kContinue;
     }
 

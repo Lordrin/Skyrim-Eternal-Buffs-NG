@@ -181,7 +181,6 @@ namespace SpellUtilities {
         if (result.empty()) return "kNone";
         if (result.back() == '|') result.pop_back();  // remove trailing '|'
 
-        SKSE::log::debug("current result: {}", result);
         return result;
     }
 
@@ -219,7 +218,6 @@ namespace SpellUtilities {
         if (result.empty()) return "kNone";
         if (result.back() == '|') result.pop_back();  // remove trailing '|'
 
-        SKSE::log::debug("current result: {}", result);
         return result;
     }
 

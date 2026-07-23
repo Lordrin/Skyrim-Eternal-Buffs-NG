@@ -39,6 +39,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             for (const auto& configFile : configFiles) {
                 configLoader.LoadConfigFile(configLoader.directory / configFile);
             }
+            // Config::GetSingleton().SetConfigLoader(std::move(configLoader));
             auto generalRule = Config::GetSingleton().GetGeneralRule();
             logger::info("Loaded config rules: {}", generalRule.ToString());
             auto spellRules = Config::GetSingleton().GetSpellRules();

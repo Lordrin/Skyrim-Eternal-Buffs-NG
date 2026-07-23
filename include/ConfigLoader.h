@@ -30,6 +30,9 @@ public:
      */
     void LoadConfigFile(const std::filesystem::path& filePath);
 
+    bool UpdateConfigValue(const std::filesystem::path& filePath, const std::string& section,
+                            const std::string& keyword, const std::string& value);
+
     std::vector<std::string> GetConfigFileNames();
     const std::filesystem::path directory = "Data/SKSE/Plugins/";
     
