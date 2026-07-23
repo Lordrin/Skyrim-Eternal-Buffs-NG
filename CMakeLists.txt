@@ -53,12 +53,15 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
 set(OUTPUT_FOLDER "G:/Skyrim/mods/mods/EternalBuffsNG")
 
 find_package(spdlog CONFIG REQUIRED)
-
-# Setup your SKSE plugin as an SKSE plugin!
 find_package(CommonLibSSE CONFIG REQUIRED)
+
 add_commonlibsse_plugin(${PROJECT_NAME} SOURCES src/plugin.cpp) # <--- specifies plugin.cpp
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23) # <--- use C++23 standard
 target_precompile_headers(${PROJECT_NAME} PRIVATE include/PCH.h) # <--- PCH.h is required!
+
+target_include_directories(${PROJECT_NAME} PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}/external/SKSE-MCP/include"
+)
 
 target_include_directories(
 	"${PROJECT_NAME}"
@@ -68,8 +71,6 @@ target_include_directories(
 		${CMAKE_CURRENT_BINARY_DIR}/cmake
 		${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-
-# target_include_directories(${PROJECT_NAME} PRIVATE "Deps/simpleini")
 
 target_sources(
 	"${PROJECT_NAME}"

@@ -8,6 +8,8 @@
 #include "SpellDataPersistence.h"
 #include "TPPlayerInputEventHandler.h"
 
+#include <SKSEMCP/utils.hpp>
+
 void SetupLog() {
     auto logsFolder = logger::log_directory();
     if (!logsFolder) {

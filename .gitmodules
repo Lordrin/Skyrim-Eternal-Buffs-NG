@@ -1,6 +1,3 @@
-[submodule "Deps/glm"]
-	path = Deps/glm
-	url = https://github.com/g-truc/glm.git
-[submodule "Deps/simpleini"]
-	path = Deps/simpleini
-	url = https://github.com/brofield/simpleini.git
+[submodule "external/SKSE-MCP"]
+	path = external/SKSE-MCP
+	url = https://github.com/QTR-Modding/SKSE-MCP.git
