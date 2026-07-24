@@ -29,3 +29,5 @@ void ApplyAllSavedPermanentSpellsToPlayer();
 void ConvertToPermanentEffectOnPlayer(SpellCastInfo castInfo);
 
 void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect);
+
+void PruneUnappliedSavedSpells(RE::Actor& actor);

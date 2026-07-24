@@ -9,6 +9,8 @@ namespace Parser {
             return {RuleIdentifierType::kInvalid, nullptr};
         }
 
+        logger::debug("Resolving identifier '{}' (config: {})", identifier, configFileName);
+
         // Step 1: Try FormID~Plugin
         if (auto resolvedForm = TryResolveFormIDPlugin(identifier, configFileName, dataHandler)) {
             return {RuleIdentifierType::kForm, resolvedForm};
@@ -142,9 +144,12 @@ namespace Parser {
         if (spellRule.resolvedForm) {
             logger::info("Resolved FormID {:#010x} to '{}' (config: {})", spellRule.resolvedForm->GetFormID(),
                          spellRule.resolvedForm->GetName(), configFileName);
+
+            spellRule.nameFilter = SpellUtilities::CreateNameFromForm(spellRule.resolvedForm);
         }
 
-        Config::GetSingleton().GetSpellRules().Insert({StringUtilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
+        Config::GetSingleton().GetSpellRules().Insert(
+            {StringUtilities::RemoveWhitespace(spellRule.nameFilter), spellRule});
 
         auto to_print = spellRule.ToString();
         logger::debug("{}", to_print);

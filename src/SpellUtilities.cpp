@@ -360,4 +360,10 @@ namespace SpellUtilities {
         return separatedActiveEffects;
     }
 
+    std::string CreateNameFromForm(RE::TESForm* form) {
+        const char* name = form->GetName();
+        const char* displayName = (name && name[0]) ? name : "<unnamed>";
+        // Constructs the string "Name (FormID)"
+        return std::format("{} ({:08X})", displayName, form->GetFormID());
+    }
 }

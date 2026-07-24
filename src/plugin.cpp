@@ -33,8 +33,9 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
     SKSE::Init(skse);
     SKSE::GetMessagingInterface()->RegisterListener([](SKSE::MessagingInterface::Message* message) {
         if (message->type == SKSE::MessagingInterface::kDataLoaded) {
-            ConfigLoader configLoader = ConfigLoader();
+            ConfigLoader& configLoader = ConfigLoader::GetSingleton();
             std::vector configFiles = configLoader.GetConfigFileNames();
+            //TODO
             configLoader.LoadConfigFile("Data/SKSE/Plugins/EternalBuffsNG.ini");
             for (const auto& configFile : configFiles) {
                 configLoader.LoadConfigFile(configLoader.directory / configFile);
@@ -49,10 +50,10 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             }
         }
         if (message->type == SKSE::MessagingInterface::kPostLoadGame) {
-            if (!Config::GetSingleton().GetGeneralRule().enabled) {
-                logger::debug("PostLoadGame event received, but shouts and spells are disabled in the generalrule.");
-                return;
-            }
+            // if (!Config::GetSingleton().GetGeneralRule().enabled) {
+            //     logger::debug("PostLoadGame event received, but shouts and spells are disabled in the generalrule.");
+            //     return;
+            // }
             SpellCastEventHandler::Register();
             TPPlayerInputEventHandler::Register();
             ApplyAllSavedPermanentSpellsToPlayer();

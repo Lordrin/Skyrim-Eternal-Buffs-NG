@@ -2,7 +2,7 @@
 
 RE::BSEventNotifyControl TPPlayerInputEventHandler::ProcessEvent(RE::InputEvent* const* a_event,
                                                                  RE::BSTEventSource<RE::InputEvent*>* /*a_eventSource*/) {
-    if (!a_event) {
+    if (!a_event || !Config::GetSingleton().GetGeneralRule().enabled) {
         return RE::BSEventNotifyControl::kContinue;
     }
 

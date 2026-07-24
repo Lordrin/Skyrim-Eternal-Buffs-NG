@@ -3,6 +3,8 @@
 #include <SKSEMCP/utils.hpp>
 
 #include "SpellDataPersistence.h"
+#include <SpellApplication.h>
+#include "ConfigLoader.h"
 
 namespace SettingsUI
 {

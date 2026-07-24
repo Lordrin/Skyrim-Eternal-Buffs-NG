@@ -30,6 +30,8 @@ namespace SpellUtilities {
     SeparatedEffects GetSeparatedActiveEffects(RE::BSSimpleList<RE::ActiveEffect*>* activeEffects);
     SeparatedEffects GetSeparatedActiveEffects(std::vector<RE::ActiveEffect*>* activeEffects);
 
+    std::string CreateNameFromForm(RE::TESForm* form);
+
 #ifdef _DEBUG
     static const char* ToString(RE::MagicSystem::SpellType type) {
         switch (type) {

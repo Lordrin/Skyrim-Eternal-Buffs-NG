@@ -65,6 +65,7 @@ struct GeneralRule {
     bool reserveMagickaEnabled = false;
 
     OrderedMap<std::string, bool*> GetFields();
+    OrderedMap<std::string, bool*> GetFieldsMatchedConfigFile();
     OrderedMap<std::string, std::function<void(const std::string&, const std::string&)>> GetParsers();
     std::vector<SpellDisableCheck> checks = {
         // checks for early return

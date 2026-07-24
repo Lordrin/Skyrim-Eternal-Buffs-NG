@@ -1,8 +1,7 @@
 #include "SpellApplication.h"
 
-#include "SpellUtilities.h"
-
 #include "SpellLogging.h"
+#include "SpellUtilities.h"
 
 // void CheckAndDispelReserveSpellFromPlayer(RE::ActiveEffect* activeEffect) {
 //     RE::FormID reserveEffectFormID = Config::GetSingleton().GetReserveEffectFormID();
@@ -117,6 +116,57 @@ void DispellAllSavedSpellsFromPlayer() {
         return;
     }
     DispellAllSavedSpellsFromActor(*player);
+}
+
+std::vector<RE::FormID> GetInactiveSavedSpells(RE::Actor& actor) {
+    const SpellEffectsMap& savedSpells = SpellDataPersistence::GetAllSavedSpells();
+    std::vector<RE::FormID> inactiveSpellIDs;
+
+    if (savedSpells.empty()) {
+        return inactiveSpellIDs;
+    }
+
+    RE::MagicTarget* magicTarget = actor.GetMagicTarget();
+    if (!magicTarget) {
+        logger::warn("GetInactiveSavedSpells: Actor has no MagicTarget.");
+        for (const auto& [formId, _] : savedSpells) {
+            inactiveSpellIDs.push_back(formId);
+        }
+        return inactiveSpellIDs;
+    }
+
+    std::unordered_set<RE::FormID> activeSavedSpellIDs;
+
+    if (auto* activeEffects = magicTarget->GetActiveEffectList()) {
+        for (RE::ActiveEffect* activeEffect : *activeEffects) {
+            if (!activeEffect || !activeEffect->spell) {
+                continue;
+            }
+
+            RE::FormID linkedSpellFormId = activeEffect->spell->GetFormID();
+            if (savedSpells.contains(linkedSpellFormId)) {
+                activeSavedSpellIDs.insert(linkedSpellFormId);
+            }
+        }
+    }
+
+    for (const auto& [formId, _] : savedSpells) {
+        if (!activeSavedSpellIDs.contains(formId)) {
+            inactiveSpellIDs.push_back(formId);
+        }
+    }
+
+    logger::debug("GetInactiveSavedSpells: {} of {} saved spells are inactive.", inactiveSpellIDs.size(),
+                  savedSpells.size());
+
+    return inactiveSpellIDs;
+}
+
+void PruneUnappliedSavedSpells(RE::Actor& actor) {
+    for (RE::FormID formId : GetInactiveSavedSpells(actor)) {
+        logger::debug("Spell ({:#010x}) was not applied to the actor. Removing from save.", formId);
+        SpellDataPersistence::RemoveSpellFromSave(formId);
+    }
 }
 
 void ApplyAllSavedSpellsToActor(RE::Actor& actor) {
@@ -303,8 +353,9 @@ void HandleSavedSpell(RE::ActiveEffect* activeEffect, const SpellCastInfo& castI
     switch (finalAction) {
         case SpellHandlingAction::kDispel:
             logger::debug("Executing Dispel for spell '{}' ({:#010x}).", spellName, spellItem->GetFormID());
-            activeEffect->Dispel(false); // Dispel the effect
-            SpellDataPersistence::RemoveSpellFromSave(spellItem->GetFormID()); // Remove the spell from the SKSE co-save
+            activeEffect->Dispel(false);  // Dispel the effect
+            SpellDataPersistence::RemoveSpellFromSave(
+                spellItem->GetFormID());  // Remove the spell from the SKSE co-save
             logger::debug("Spell '{}' ({:#010x}) dispelled and removed from save.", spellName, spellItem->GetFormID());
             break;
 

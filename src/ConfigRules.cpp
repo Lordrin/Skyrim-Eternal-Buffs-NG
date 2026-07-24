@@ -40,7 +40,8 @@ OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetPa
         {"isPermanentEnabled",
          [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> isPermanentEnabled; }},
         {"toggleable", [this](const std::string& value) { std::istringstream(value) >> std::boolalpha >> toggleable; }},
-        {"keywordFilter", [this](const std::string& value) { keywordFilter = StringUtilities::SplitString(value, ','); }}};
+        {"keywordFilter",
+         [this](const std::string& value) { keywordFilter = StringUtilities::SplitString(value, ','); }}};
 }
 
 /**
@@ -54,10 +55,13 @@ OrderedMap<std::string, std::function<void(const std::string&)>> BaseRule::GetPa
  * or if the form's FormID is the same as the resolvedForm's FormID.
  */
 bool BaseRule::IsCorrectRuleToForm(RE::TESForm* form) const {
+    logger::debug("ShouldApplyRuleToForm: form = {} for {}", form->GetName(), nameFilter);
     if (resolvedForm == nullptr) {
         logger::debug("ShouldApplyRuleToForm: resolvedForm is null. Checking by name");
         return nameFilter == form->GetName();
     } else {
+        logger::debug("ShouldApplyRuleToForm: resolvedForm is not null. Checking by formID {} == {}",
+                      resolvedForm->GetFormID(), form->GetFormID());
         return (resolvedForm == form || form->GetFormID() == resolvedForm->GetFormID());
     }
 }
@@ -178,8 +182,8 @@ std::string SpellRule::ToString() const {
 }
 
 SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
-    auto spellRuleIt =
-        Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+    auto spellRuleIt = Config::GetSingleton().GetSpellRules().find(
+        StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
         RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
         if (spellItem && spellRuleIt->second.IsCorrectRuleToSpell(spellItem)) {
@@ -199,16 +203,18 @@ SpellRule GetSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect) {
  * parameter.
  */
 bool FindSpellRuleForActiveEffect(RE::ActiveEffect* activeEffect, SpellRule& spellRule) {
-    auto spellRuleIt =
-        Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
-    if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
-        spellRule = spellRuleIt->second;
-        RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
-        if (spellItem && spellRule.IsCorrectRuleToSpell(spellItem)) {
-            return true;
-        }
-    }
-    return false;
+    RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
+    return FindSpellRuleForSpellItem(spellItem, spellRule);
+    // auto spellRuleIt = Config::GetSingleton().GetSpellRules().find(
+    //     StringUtilities::RemoveWhitespace(activeEffect->spell->GetFullName()));
+    // if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
+    //     spellRule = spellRuleIt->second;
+    //     RE::SpellItem* spellItem = (activeEffect->spell)->As<RE::SpellItem>();
+    //     if (spellItem && spellRule.IsCorrectRuleToSpell(spellItem)) {
+    //         return true;
+    //     }
+    // }
+    // return false;
 }
 
 /**
@@ -229,6 +235,18 @@ bool FindSpellRuleForSpellByPluginName(const std::string& pluginName, SpellRule&
 }
 
 bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
+    const std::string resolvedName = SpellUtilities::CreateNameFromForm(spellItem->As<RE::TESForm>());
+
+    logger::debug("resolvedName: {}", resolvedName);
+
+    auto spellRuleResolvedIt = Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(resolvedName));
+    if (spellRuleResolvedIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
+        spellRule = spellRuleResolvedIt->second;
+        if (spellRule.IsCorrectRuleToSpell(spellItem)) {
+            return true;
+        }
+    }
+
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(spellItem->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
@@ -241,6 +259,15 @@ bool FindSpellRuleForSpellItem(RE::SpellItem* spellItem, SpellRule& spellRule) {
 }
 
 bool IsSpellRuleDefined(RE::SpellItem* spellItem) {
+    logger::debug("IsSpellRuleDefined: {}", spellItem->GetFullName());
+
+    const std::string resolvedName = SpellUtilities::CreateNameFromForm(spellItem->As<RE::TESForm>());
+
+    auto spellRuleResolvedIt = Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(resolvedName));
+    if (spellRuleResolvedIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
+        return true;
+    }
+
     auto spellRuleIt =
         Config::GetSingleton().GetSpellRules().find(StringUtilities::RemoveWhitespace(spellItem->GetFullName()));
     if (spellRuleIt != Config::GetSingleton().GetSpellRules().GetMap().end()) {
@@ -262,6 +289,20 @@ OrderedMap<std::string, bool*> GeneralRule::GetFields() {
         {"scrollsEnabled", &scrollsEnabled},
         {"recastableEnabled", &recastableEnabled},
         {"reserveMagickaEnabled", &reserveMagickaEnabled},
+    };
+}
+
+OrderedMap<std::string, bool*> GeneralRule::GetFieldsMatchedConfigFile() {
+    return {
+        {"Enable", &enabled},
+        {"Shouts", &shoutsEnabled},
+        {"Spells", &spellsEnabled},
+        {"Summons", &summonsEnabled},
+        {"LesserPowers", &lesserPowersEnabled},
+        {"GreaterPowers", &greaterPowersEnabled},
+        {"Scrolls", &scrollsEnabled},
+        {"Recastable", &recastableEnabled},
+        {"ReserveMagicka", &reserveMagickaEnabled},
     };
 }
 
